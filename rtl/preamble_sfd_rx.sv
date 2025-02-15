@@ -22,7 +22,6 @@ module preamble_sfd_rx
 
     typedef enum logic [1:0] 
     {  
-        IDLE,
         PREAMBLE_CHECK,
         SFD_CHECK,
         WAIT_LAST
@@ -36,58 +35,50 @@ module preamble_sfd_rx
         if (!mac_gmii_rx_rstn) begin
             state <= PREAMBLE_CHECK;
             count <= 'd0;
+            preamble_sfd_valid <= 'd0;
         end else begin
-            case (state)
-                PREAMBLE_CHECK:
-                    begin
-                        if (!(data_valid && (mac_gmii_rxd == PREAMBLE))) begin
-                            state <= PREAMBLE_CHECK;
-                            count <= 'd0;
-                        end else begin
-                            if (count != 6) begin
+            if (!data_valid) begin
+                state <= PREAMBLE_CHECK;
+                count <= 'd0;
+                preamble_sfd_valid <= 'd0;
+            end else begin
+                case (state)
+                    PREAMBLE_CHECK:
+                        begin
+                            if (mac_gmii_rxd != PREAMBLE) begin
                                 state <= PREAMBLE_CHECK;
-                                count <= count + 1;
-                            end else begin
-                                state <= SFD_CHECK;
                                 count <= 'd0;
+                            end else begin
+                                if (count != 6) begin
+                                    count <= count + 1;
+                                end else begin
+                                    state <= SFD_CHECK;
+                                    count <= 'd0;
+                                end
                             end
                         end
-                    end
-                SFD_CHECK:
-                    begin
-                        if (!(data_valid && (mac_gmii_rxd == SFD))) begin
-                            state <= PREAMBLE_CHECK;
-                        end else begin
-                            state <= WAIT_LAST;
+                    SFD_CHECK:
+                        begin
+                            if (mac_gmii_rxd != SFD) begin
+                                state <= PREAMBLE_CHECK;
+                            end else begin
+                                state <= WAIT_LAST;
+                                preamble_sfd_valid <= 'd1;
+                            end
                         end
-                    end
-                WAIT_LAST:
-                    begin
-                        if (!(last_byte_sent || error)) begin
-                            state <= PREAMBLE_CHECK;
-                        end else begin
-                            state <= PREAMBLE_CHECK;
-                        end
-                    end
-            endcase
-        end
-    end
+                    WAIT_LAST:
+                        begin
+                            if (!(last_byte_sent || error)) begin
+                                state <= PREAMBLE_CHECK;
+                            end else begin
+                                state <= PREAMBLE_CHECK;
+                            end
 
-    always_comb begin
-        case (state)
-            SFD_CHECK:
-                begin
-                    if (!(data_valid && (mac_gmii_rxd == SFD))) begin
-                        preamble_sfd_valid = 'd0;
-                    end else begin
-                        preamble_sfd_valid = 'd1;
-                    end
-                end
-            default:
-                begin
-                    preamble_sfd_valid = 'd0;
-                end
-        endcase
+                            preamble_sfd_valid <= 'd0;
+                        end
+                endcase
+            end
+        end
     end
 
 endmodule

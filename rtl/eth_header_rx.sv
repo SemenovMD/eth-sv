@@ -55,44 +55,42 @@ module eth_header_rx
         if (!mac_gmii_rx_rstn) begin
             state <= WAIT;
             count <= 'd0;
-            mac_d_addr_buf <= 'd0;
-            mac_s_addr_buf <= 'd0;
-            eth_type_buf <= 'd0;
+            eth_type_arp_valid <= 'd0;
+            eth_type_ip_valid <= 'd0;
         end else begin
-            case (state)
-                WAIT:
-                    begin
-                        if (!preamble_sfd_valid) begin
-                            state <= WAIT;
-                        end else begin
-                            state <= MAC_DESTINATION;
-                        end
-                    end
-                MAC_DESTINATION:
-                    begin
-                        if (!data_valid) begin
-                            state <= WAIT;
-                            count <= 'd0;
-                        end else
+            if (!data_valid) begin
+                state <= WAIT;
+                count <= 'd0;
+                eth_type_arp_valid <= 'd0;
+                eth_type_ip_valid <= 'd0;
+            end else begin
+                case (state)
+                    WAIT:
                         begin
-                            if (count != 5) begin
+                            if (!preamble_sfd_valid) begin
+                                state <= WAIT;
+                            end else begin
+                                state <= MAC_DESTINATION;
+                                mac_d_addr_buf[47:40] <= mac_gmii_rxd;
+                            end
+
+                            eth_type_arp_valid <= 'd0;
+                            eth_type_ip_valid <= 'd0;
+                        end
+                    MAC_DESTINATION:
+                        begin
+                            if (count != 4) begin
                                 count <= count + 1;
                             end else begin
                                 state <= MAC_SOURCE;
                                 count <= 'd0;
                             end
-                        end
 
-                        case (count)
-                            count: mac_d_addr_buf[47 - count*8 -: 8] <= mac_gmii_rxd;
-                        endcase
-                    end
-                MAC_SOURCE:
-                    begin
-                        if (!data_valid) begin
-                            state <= WAIT;
-                            count <= 'd0;
-                        end else
+                            case (count)
+                                count: mac_d_addr_buf[39 - count*8 -: 8] <= mac_gmii_rxd;
+                            endcase
+                        end
+                    MAC_SOURCE:
                         begin
                             if (count != 5) begin
                                 count <= count + 1;
@@ -100,82 +98,42 @@ module eth_header_rx
                                 state <= ETH_TYPE;
                                 count <= 'd0;
                             end
-                        end
 
-                        case (count)
-                            count: mac_s_addr_buf[47 - count*8 -: 8] <= mac_gmii_rxd;
-                        endcase
-                    end
-                ETH_TYPE:
-                    begin
-                        if (!data_valid) begin
-                            state <= WAIT;
-                            count <= 'd0;
-                        end else
+                            case (count)
+                                count: mac_s_addr_buf[47 - count*8 -: 8] <= mac_gmii_rxd;
+                            endcase
+                        end
+                    ETH_TYPE:
                         begin
                             if (count != 1) begin
                                 count <= count + 1;
                             end else begin
                                 state <= WAIT;
                                 count <= 'd0;
+
+                                case ({eth_type_buf, mac_gmii_rxd})
+                                    ETH_ARP_TYPE:
+                                        begin
+                                            if (mac_d_addr_buf == MAC_W) begin
+                                                eth_type_arp_valid <= 'd1;
+                                            end
+                                        end
+                                    ETH_IP_TYPE:
+                                        begin
+                                            if ((mac_d_addr_buf == mac_d_addr) && (mac_s_addr_buf == mac_s_addr)) begin
+                                                eth_type_ip_valid <= 'd1;
+                                            end
+                                        end
+                                endcase
+                            end
+
+                            if (count == 0) begin
+                                eth_type_buf <= mac_gmii_rxd;
                             end
                         end
-
-                        if (count == 0) begin
-                            eth_type_buf <= mac_gmii_rxd;
-                        end else begin
-                            eth_type_buf <= eth_type_buf;
-                        end
-                    end
-            endcase
+                endcase
+            end
         end
-    end
-
-    always_comb begin
-        case (state)
-            ETH_TYPE:
-                begin
-                    if (count == 1)
-                    begin
-                        case ({eth_type_buf, mac_gmii_rxd})
-                            ETH_ARP_TYPE:
-                                begin
-                                    if (mac_d_addr_buf == MAC_W) begin
-                                        eth_type_arp_valid = 'd1;
-                                        eth_type_ip_valid = 'd0;
-                                    end else begin
-                                        eth_type_arp_valid = 'd0;
-                                        eth_type_ip_valid = 'd0;
-                                    end
-                                end
-                            ETH_IP_TYPE:
-                                begin
-                                    if ((mac_d_addr_buf == mac_d_addr) && (mac_s_addr_buf == mac_s_addr)) begin
-                                        eth_type_arp_valid = 'd0;
-                                        eth_type_ip_valid = 'd1;
-                                    end else begin
-                                        eth_type_arp_valid = 'd0;
-                                        eth_type_ip_valid = 'd0;
-                                    end
-                                end
-                            default:
-                                begin
-                                    eth_type_arp_valid = 'd0;
-                                    eth_type_ip_valid = 'd0;
-                                end
-                        endcase
-                    end else
-                    begin
-                        eth_type_arp_valid = 'd0;
-                        eth_type_ip_valid = 'd0;
-                    end
-                end
-            default:
-                begin
-                    eth_type_arp_valid = 'd0;
-                    eth_type_ip_valid = 'd0;
-                end
-        endcase
     end
 
 endmodule
