@@ -1,12 +1,11 @@
 module eth_header_rx
 
 (
-    input   logic           mac_gmii_rx_clk,
-    input   logic           mac_gmii_rx_rstn,
+    input   logic           aclk,
+    input   logic           aresetn,
 
-    input   logic   [7:0]   mac_gmii_rxd,
-    input   logic           mac_gmii_rx_dv,
-    input   logic           mac_gmii_rx_er,
+    input   logic   [7:0]   data_in,
+    input   logic           data_valid,
 
     input   logic   [47:0]  mac_d_addr,
     input   logic   [47:0]  mac_s_addr,
@@ -14,11 +13,7 @@ module eth_header_rx
     input   logic           preamble_sfd_valid,
 
     output  logic           eth_type_arp_valid,
-    output  logic           eth_type_ip_valid,
-
-    // ILA
-    output  logic   [47:0]  mac_d_addr_buf_ila,
-    output  logic   [47:0]  mac_s_addr_buf_ila
+    output  logic           eth_type_ip_valid
 );
 
     localparam  ETH_ARP_TYPE    =   16'h08_06;
@@ -26,18 +21,11 @@ module eth_header_rx
 
     localparam  MAC_W           =   48'hFF_FF_FF_FF_FF_FF;
 
-    logic           data_valid;
-
     logic   [2:0]   count;
 
     logic   [47:0]  mac_d_addr_buf;
     logic   [47:0]  mac_s_addr_buf;
     logic   [7:0]   eth_type_buf;
-
-    //
-    assign mac_s_addr_buf_ila = mac_s_addr_buf;
-    assign mac_d_addr_buf_ila = mac_d_addr_buf;
-    //
 
     typedef enum logic [1:0]
     {  
@@ -49,10 +37,8 @@ module eth_header_rx
 
     state_type state;
 
-    assign data_valid = mac_gmii_rx_dv && ~mac_gmii_rx_er;
-
-    always_ff @(posedge mac_gmii_rx_clk) begin
-        if (!mac_gmii_rx_rstn) begin
+    always_ff @(posedge aclk) begin
+        if (!aresetn) begin
             state <= WAIT;
             count <= 'd0;
             eth_type_arp_valid <= 'd0;
@@ -71,7 +57,7 @@ module eth_header_rx
                                 state <= WAIT;
                             end else begin
                                 state <= MAC_DESTINATION;
-                                mac_d_addr_buf[47:40] <= mac_gmii_rxd;
+                                mac_d_addr_buf[47:40] <= data_in;
                             end
 
                             eth_type_arp_valid <= 'd0;
@@ -87,7 +73,7 @@ module eth_header_rx
                             end
 
                             case (count)
-                                count: mac_d_addr_buf[39 - count*8 -: 8] <= mac_gmii_rxd;
+                                count: mac_d_addr_buf[39 - count*8 -: 8] <= data_in;
                             endcase
                         end
                     MAC_SOURCE:
@@ -100,7 +86,7 @@ module eth_header_rx
                             end
 
                             case (count)
-                                count: mac_s_addr_buf[47 - count*8 -: 8] <= mac_gmii_rxd;
+                                count: mac_s_addr_buf[47 - count*8 -: 8] <= data_in;
                             endcase
                         end
                     ETH_TYPE:
@@ -111,7 +97,7 @@ module eth_header_rx
                                 state <= WAIT;
                                 count <= 'd0;
 
-                                case ({eth_type_buf, mac_gmii_rxd})
+                                case ({eth_type_buf, data_in})
                                     ETH_ARP_TYPE:
                                         begin
                                             if (mac_d_addr_buf == MAC_W) begin
@@ -128,7 +114,7 @@ module eth_header_rx
                             end
 
                             if (count == 0) begin
-                                eth_type_buf <= mac_gmii_rxd;
+                                eth_type_buf <= data_in;
                             end
                         end
                 endcase
