@@ -25,8 +25,9 @@ module arp_data_tx
     localparam  OPER_RESP   =   16'h00_02;
 
     localparam  MAC_Z       =    8'h00;
+    localparam  PADDING     =    8'h00;
 
-    logic   [2:0]   count;
+    logic   [4:0]   count;
 
     typedef enum logic [3:0] 
     {  
@@ -39,7 +40,8 @@ module arp_data_tx
         MAC_SOURCE_TX,
         IP_SOURCE_TX,
         MAC_DESTINATION_TX,
-        IP_DESTINATION_TX
+        IP_DESTINATION_TX,
+        PADDING_TX
     } state_type;
 
     state_type state;
@@ -145,12 +147,23 @@ module arp_data_tx
                         if (count != 3) begin
                             count <= count + 1;
                         end else begin
-                            state <= WAIT_START;
+                            state <= PADDING_TX;
                             count <= 'd0;
-                            arp_data_done <= 'd1;
                         end
 
                         data_out <= ip_d_addr[31 - count*8 -: 8];
+                    end
+                PADDING_TX:
+                    begin
+                        if (count != 17) begin
+                            count <= count + 1;
+                        end else begin
+                            count <= 'd0;
+                            state <= WAIT_START;
+                            arp_data_done <= 'd1;
+                        end
+                        
+                        data_out <= PADDING;
                     end
             endcase
         end
