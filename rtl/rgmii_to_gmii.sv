@@ -2,22 +2,28 @@ module rgmii_to_gmii
 
 (
     input   logic           reset,
+
     output  logic   [3:0]   rgmii_td,
     output  logic           rgmii_tx_ctl,
     output  logic           rgmii_txc,
+    
     input   logic   [3:0]   rgmii_rd,
     input   logic           rgmii_rx_ctl,
     input   logic           rgmii_rxc,
+
     input   logic   [7:0]   gmii_txd,
     input   logic           gmii_tx_en,
     input   logic           gmii_tx_er,
     output  logic           gmii_tx_clk,
-    output  logic           gmii_crs,
-    output  logic           gmii_col,
+    
     output  logic   [7:0]   gmii_rxd,
     output  logic           gmii_rx_dv,
     output  logic           gmii_rx_er,
     output  logic           gmii_rx_clk,
+
+    output  logic           gmii_crs,
+    output  logic           gmii_col,
+
     input   logic   [1:0]   speed_selection,
     input   logic           duplex_mode
 );

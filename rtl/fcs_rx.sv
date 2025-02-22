@@ -1,4 +1,4 @@
-module crc32_rx 
+module fcs_rx 
 
 (
     input   logic           aclk,
@@ -7,7 +7,7 @@ module crc32_rx
     input   logic           data_valid,
     input   logic           preamble_sfd_valid,
     output  logic           crc_valid,
-    output  logic           crc_error 
+    output  logic           crc_error
 );
 
     localparam POLY_CRC = 32'hEDB8_8320;
@@ -28,14 +28,10 @@ module crc32_rx
     logic   [7:0]   crc_rx_4;
 
     always_comb begin
-        crc_next = crc_reg;
-        
-        if(data_valid) begin
-            crc_next = crc_reg ^ {24'h0, data_in};
+        crc_next = crc_reg ^ {24'h0, data_in};
             
-            for(int i = 0; i < 8; i++) begin
-                crc_next = (crc_next[0]) ? ((crc_next >> 1) ^ POLY_CRC) : (crc_next >> 1);
-            end
+        for(int i = 0; i < 8; i++) begin
+            crc_next = (crc_next[0]) ? ((crc_next >> 1) ^ POLY_CRC) : (crc_next >> 1);
         end
     end
 

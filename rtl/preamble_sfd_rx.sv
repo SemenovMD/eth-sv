@@ -1,15 +1,11 @@
 module preamble_sfd_rx
 
 (
-    input   logic           mac_gmii_rx_clk,
-    input   logic           mac_gmii_rx_rstn,
+    input   logic           aclk,
+    input   logic           aresetn,
 
-    input   logic   [7:0]   mac_gmii_rxd,
-    input   logic           mac_gmii_rx_dv,
-    input   logic           mac_gmii_rx_er,
-
-    input   logic           last_byte_sent,
-    input   logic           error,
+    input   logic   [7:0]   data_in,
+    input   logic           data_valid,
 
     output  logic           preamble_sfd_valid
 );
@@ -17,67 +13,57 @@ module preamble_sfd_rx
     localparam PREAMBLE = 8'h55;
     localparam SFD      = 8'hd5;
 
-    logic           data_valid;
     logic   [2:0]   count;
+
+    logic           aresetn_sum;
+
+    assign  aresetn_sum = aresetn & data_valid;
 
     typedef enum logic [1:0] 
     {  
         PREAMBLE_CHECK,
         SFD_CHECK,
-        WAIT_LAST
+        WAIT
     } state_type;
 
     state_type state;
 
-    assign data_valid = mac_gmii_rx_dv && ~mac_gmii_rx_er;
-
-    always_ff @(posedge mac_gmii_rx_clk) begin
-        if (!mac_gmii_rx_rstn) begin
+    always_ff @(posedge aclk) begin
+        if (!aresetn_sum) begin
             state <= PREAMBLE_CHECK;
             count <= 'd0;
             preamble_sfd_valid <= 'd0;
         end else begin
-            if (!data_valid) begin
-                state <= PREAMBLE_CHECK;
-                count <= 'd0;
-                preamble_sfd_valid <= 'd0;
-            end else begin
-                case (state)
-                    PREAMBLE_CHECK:
-                        begin
-                            if (mac_gmii_rxd != PREAMBLE) begin
-                                state <= PREAMBLE_CHECK;
+            case (state)
+                PREAMBLE_CHECK:
+                    begin
+                        if (data_in != PREAMBLE) begin
+                            state <= PREAMBLE_CHECK;
+                            count <= 'd0;
+                        end else begin
+                            if (count != 6) begin
+                                count <= count + 1;
+                            end else begin
+                                state <= SFD_CHECK;
                                 count <= 'd0;
-                            end else begin
-                                if (count != 6) begin
-                                    count <= count + 1;
-                                end else begin
-                                    state <= SFD_CHECK;
-                                    count <= 'd0;
-                                end
                             end
                         end
-                    SFD_CHECK:
-                        begin
-                            if (mac_gmii_rxd != SFD) begin
-                                state <= PREAMBLE_CHECK;
-                            end else begin
-                                state <= WAIT_LAST;
-                                preamble_sfd_valid <= 'd1;
-                            end
+                    end
+                SFD_CHECK:
+                    begin
+                        if (data_in != SFD) begin
+                            state <= PREAMBLE_CHECK;
+                        end else begin
+                            state <= WAIT;
+                            preamble_sfd_valid <= 'd1;
                         end
-                    WAIT_LAST:
-                        begin
-                            if (!(last_byte_sent || error)) begin
-                                state <= PREAMBLE_CHECK;
-                            end else begin
-                                state <= PREAMBLE_CHECK;
-                            end
-
-                            preamble_sfd_valid <= 'd0;
-                        end
-                endcase
-            end
+                    end
+                WAIT:
+                    begin
+                        state <= WAIT;
+                        preamble_sfd_valid <= 'd0;
+                    end
+            endcase
         end
     end
 
