@@ -29,13 +29,16 @@ module mux_tx
     output  logic           tx_frame_done
 );
 
+    logic   [31:0]  count;
+
     typedef enum logic [2:0] 
     {  
         WAIT_START,
         PREAMBLE_SFD,
         ETH_HEADER,
         ARP_DATA,
-        FCS
+        FCS,
+        DELAY
     } state_type;
 
     state_type state;
@@ -44,6 +47,7 @@ module mux_tx
         if (!aresetn) begin
             state <= WAIT_START;
             tx_frame_done <= 'd0;
+            count <= 'd0;
         end else begin
             case (state)
                 WAIT_START:
@@ -53,8 +57,6 @@ module mux_tx
                         end else begin
                             state <= PREAMBLE_SFD;
                         end
-
-                        tx_frame_done <= 'd0;
                     end
                 PREAMBLE_SFD:
                     begin
@@ -85,9 +87,20 @@ module mux_tx
                         if (!fcs_tx_done) begin
                             state <= FCS;
                         end else begin
-                            state <= WAIT_START;
+                            state <= DELAY;
                             tx_frame_done <= 'd1;
                         end
+                    end
+                DELAY:
+                    begin
+                        if (count < 50_000_000 - 1) begin
+                            count <= count + 1;
+                        end else begin
+                            count <= 'd0;
+                            state <= WAIT_START;
+                        end
+
+                        tx_frame_done <= 'd0;
                     end
             endcase
         end
