@@ -95,7 +95,7 @@ module eth_header_rx
                             case ({eth_type_buf, data_in})
                                 ETH_ARP_TYPE:
                                     begin
-                                        if (mac_d_addr_buf == MAC_W) begin
+                                        if ((mac_d_addr_buf == mac_d_addr) || (mac_d_addr_buf == MAC_W)) begin
                                             eth_type_arp_valid <= 'd1;
                                         end
                                     end

@@ -1,18 +1,18 @@
 module eth_tx
 
 (
-    input   logic           aclk,
     input   logic           aresetn,
+
+    output  logic   [7:0]   gmii_txd,
+    output  logic           gmii_tx_en,
+    output  logic           gmii_tx_er,
+    input   logic           gmii_tx_clk,
 
     input   logic           tx_frame_start,
     output  logic           tx_frame_done,
 
-    output  logic           data_valid,
-    output  logic   [7:0]   data_out,
-
     input   logic   [47:0]  mac_d_addr,
     input   logic   [31:0]  ip_d_addr,
-
     input   logic   [47:0]  mac_s_addr,
     input   logic   [31:0]  ip_s_addr,
 
@@ -31,9 +31,22 @@ module eth_tx
     logic           fcs_tx_done_wire;
     logic   [7:0]   fcs_tx_data_wire;
 
+    logic           data_valid;
+    logic   [7:0]   data_out;
+
+
+    gmii_tx_to_valid gmii_tx_to_valid_inst
+    (
+        .data_in(data_out),
+        .data_valid(data_valid),
+        .gmii_txd(gmii_txd),
+        .gmii_tx_en(gmii_tx_en),
+        .gmii_tx_er(gmii_tx_er)
+    );
+
     preamble_sfd_tx preamble_sfd_tx_inst
     (
-        .aclk(aclk),
+        .aclk(gmii_tx_clk),
         .aresetn(aresetn),
         .preamble_sfd_tx_start(tx_frame_start),
         .preamble_sfd_tx_done(preamble_sfd_tx_done_wire),
@@ -42,7 +55,7 @@ module eth_tx
 
     eth_header_tx eth_header_tx_inst
     (
-        .aclk(aclk),
+        .aclk(gmii_tx_clk),
         .aresetn(aresetn),
         .mac_d_addr(mac_d_addr),
         .mac_s_addr(mac_s_addr),
@@ -56,7 +69,7 @@ module eth_tx
 
     arp_data_tx arp_data_tx_inst
     (
-        .aclk(aclk),
+        .aclk(gmii_tx_clk),
         .aresetn(aresetn),
         .arp_oper(arp_oper),
         .mac_d_addr(mac_d_addr),
@@ -70,7 +83,7 @@ module eth_tx
 
     fcs_tx fcs_tx_inst
     (
-        .aclk(aclk),
+        .aclk(gmii_tx_clk),
         .aresetn(aresetn),
         .preamble_sfd_tx_done(preamble_sfd_tx_done_wire),
         .data_in(data_out),
@@ -82,7 +95,7 @@ module eth_tx
 
     mux_tx mux_tx_inst
     (
-        .aclk(aclk),
+        .aclk(gmii_tx_clk),
         .aresetn(aresetn),
         .data_valid(data_valid),
         .data_out(data_out),

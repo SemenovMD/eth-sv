@@ -4,117 +4,64 @@ module arp_cache
     input   logic           aclk,
     input   logic           aresetn,
 
-    // Configuration Interface
-    input   logic   [47:0]  mac_config_addr_in,
-    input   logic   [31:0]  ip_config_addr_in,
+    output  logic   [47:0]  mac_d_addr,
+    output  logic   [31:0]  ip_d_addr,
 
-    output  logic   [47:0]  mac_config_addr_out,
-    output  logic   [31:0]  ip_config_addr_out,
+    input   logic   [47:0]  rq_mac_s_addr,
+    output  logic   [47:0]  resp_mac_s_addr,
+    output  logic   [31:0]  ip_s_addr,
 
-    //////////////////////////////////////////////////////////
-    // RX
-    //////////////////////////////////////////////////////////
-
-    // Ethernet Header
-    input   logic   [47:0]  rx_mac_s_addr,
-    output  logic           rx_mac_s_addr_valid,
-    
-    // ARP data
-    input   logic   [47:0]  arp_mac_s_addr,
-    input   logic   [31:0]  arp_ip_s_addr,
-    input   logic           arp_mac_s_addr_valid,
-
-    // IP Header
-    input   logic   [31:0]  rx_ip_s_addr,
-    output  logic           rx_ip_s_addr_valid,
-
-    //////////////////////////////////////////////////////////
-    // TX
-    //////////////////////////////////////////////////////////
-
-    input   logic   [47:0]  tx_mac_d_addr,
-    input   logic   [31:0]  tx_ip_d_addr,
-    input   logic           tx_valid,
-    output  logic           tx_ready,
-    output  logic           tx_error
+    input   logic           arp_data_done,
+    input   logic           crc_valid,
+    output  logic           arp_resp_start
 );
 
-    logic   [1:0]   index;
+    assign  ip_d_addr   =   {8'd192, 8'd168, 8'd1, 8'd120};
+    assign  mac_d_addr  =   {8'h84, 8'hA0, 8'hDA, 8'hB8, 8'h31, 8'h42};
 
-    logic   [47:0]  mac_addr_cache    [0:3];
-    logic   [31:0]  ip_addr_cache     [0:3];
+    assign  ip_s_addr   =   {8'd192, 8'd168, 8'd1, 8'd10};
 
-    assign mac_config_addr_out = mac_config_addr_in;
-    assign ip_config_addr_out = ip_config_addr_in;
-
-    //////////////////////////////////////////////////////////
-    // RX
-    //////////////////////////////////////////////////////////
-
-    // Ethernet Header
-    always_comb  begin
-        case (rx_mac_s_addr)
-            mac_addr_cache[0]:  rx_mac_s_addr_valid = 'd1;
-            mac_addr_cache[1]:  rx_mac_s_addr_valid = 'd1;
-            mac_addr_cache[2]:  rx_mac_s_addr_valid = 'd1;
-            mac_addr_cache[3]:  rx_mac_s_addr_valid = 'd1;
-            default:            rx_mac_s_addr_valid = 'd0;
-        endcase
-    end
-
-    // IP Header
-    always_comb  begin
-        case (rx_ip_s_addr)
-            ip_addr_cache[0]:   rx_ip_s_addr_valid = 'd1;
-            ip_addr_cache[1]:   rx_ip_s_addr_valid = 'd1;
-            ip_addr_cache[2]:   rx_ip_s_addr_valid = 'd1;
-            ip_addr_cache[3]:   rx_ip_s_addr_valid = 'd1;
-            default:            rx_ip_s_addr_valid = 'd0;
-        endcase
-    end
-
-    // FSM
-    typedef enum logic 
+    typedef enum logic [1:0]
     {  
-        IDLE,
-        WRITE
+        WAIT_ARP_DONE,
+        WAIT_FCS_DONE,
+        ARP_RESP
+
     } state_type;
 
     state_type state;
 
     always_ff @(posedge aclk) begin
         if (!aresetn) begin
-            state <= IDLE;
-            index <= 'd0;
+            state <= WAIT_ARP_DONE;
+            arp_resp_start <= 'd0;
         end else begin
             case (state)
-                IDLE:
+                WAIT_ARP_DONE:
                     begin
-                        if (!arp_mac_s_addr_valid) begin
-                            state <= IDLE;
+                        if (!arp_data_done) begin
+                            state <= WAIT_ARP_DONE;
                         end else begin
-                            case ({arp_mac_s_addr, arp_ip_s_addr})
-                                {mac_addr_cache[0], ip_addr_cache[0]}:  state <= IDLE;
-                                {mac_addr_cache[1], ip_addr_cache[1]}:  state <= IDLE;
-                                {mac_addr_cache[2], ip_addr_cache[2]}:  state <= IDLE;
-                                {mac_addr_cache[3], ip_addr_cache[3]}:  state <= IDLE;
-                                default:                                state <= WRITE;
-                            endcase
+                            state <= WAIT_FCS_DONE;
+                            resp_mac_s_addr <= rq_mac_s_addr;
                         end
                     end
-                WRITE:
+                WAIT_FCS_DONE:
                     begin
-                        state <= IDLE;
-                        index <= index + 1;
-                        mac_addr_cache[index] <= arp_mac_s_addr;
-                        ip_addr_cache[index] <= arp_ip_s_addr;
+                        if (!crc_valid) begin
+                            state <= WAIT_FCS_DONE;
+                        end else begin
+                            state <= ARP_RESP;
+                            arp_resp_start <= 'd1;
+                        end
+                    end
+                ARP_RESP:
+                    begin
+                        state <= WAIT_ARP_DONE;
+                        arp_resp_start <= 'd0;
                     end
             endcase
         end
     end
-
-    //////////////////////////////////////////////////////////
-    // TX
-    //////////////////////////////////////////////////////////
 
 endmodule

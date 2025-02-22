@@ -8,8 +8,9 @@ module arp_data_rx
     input   logic           data_valid,
 
     // Request
-    input   logic   [47:0]  mac_s_addr,
+    output  logic   [47:0]  mac_s_addr,
     input   logic   [31:0]  ip_s_addr,
+    input   logic   [47:0]  mac_d_addr,
     input   logic   [31:0]  ip_d_addr,
 
     input   logic           eth_type_arp_valid,
@@ -23,14 +24,14 @@ module arp_data_rx
     localparam  OPER_RQ     =   16'h00_01;
     localparam  OPER_RESP   =   16'h00_02;
 
-    localparam  MAC_Z       =    8'h00;
+    localparam  MAC_Z       =   48'h00_00_00_00_00_00;
 
     logic   [7:0]   arp_buf;
     logic           oper_flag;
     logic   [2:0]   count;
 
-    logic   [47:0]  mac_s_addr_buf;
     logic   [31:0]  ip_s_addr_buf;
+    logic   [47:0]  mac_d_addr_buf;
     logic   [31:0]  ip_d_addr_buf;
 
     logic           aresetn_sum;
@@ -156,7 +157,7 @@ module arp_data_rx
                         end
 
                         if (!oper_flag) begin
-                            mac_s_addr_buf[47 - count*8 -: 8] <= data_in;
+                            mac_s_addr[47 - count*8 -: 8] <= data_in;
                         end
                     end
                 IP_SOURCE:
@@ -174,16 +175,15 @@ module arp_data_rx
                     end
                 MAC_DESTINATION:
                     begin
-                        if (data_in != MAC_Z) begin
-                            state_arp <= WAIT;
-                            count <= 'd0;
+                        if (count != 5) begin
+                            count <= count + 1;
                         end else begin
-                            if (count != 5) begin
-                                count <= count + 1;
-                            end else begin
-                                state_arp <= IP_DESTINATION;
-                                count <= 'd0;
-                            end
+                            state_arp <= IP_DESTINATION;
+                            count <= 'd0;
+                        end
+
+                        if (!oper_flag) begin
+                            mac_d_addr_buf[47 - count*8 -: 8] <= data_in;
                         end
                     end
                 IP_DESTINATION:
@@ -193,7 +193,10 @@ module arp_data_rx
                         end else begin
                             state_arp <= WAIT;
                             count <= 'd0;
-                            arp_data_valid <= 'd1;
+
+                            if (((mac_d_addr_buf == mac_d_addr) || (mac_d_addr_buf == MAC_Z)) && ({ip_d_addr_buf[31:8], data_in} == ip_d_addr)) begin
+                                arp_data_valid <= 'd1;
+                            end
                         end
 
                         if (!oper_flag) begin

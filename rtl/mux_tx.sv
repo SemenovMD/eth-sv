@@ -29,7 +29,7 @@ module mux_tx
     output  logic           tx_frame_done
 );
 
-    logic   [31:0]  count;
+    logic   [3:0]   count;
 
     typedef enum logic [2:0] 
     {  
@@ -93,7 +93,7 @@ module mux_tx
                     end
                 DELAY:
                     begin
-                        if (count < 50_000_000 - 1) begin
+                        if (count < 12 - 1) begin
                             count <= count + 1;
                         end else begin
                             count <= 'd0;
