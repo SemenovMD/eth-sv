@@ -12,16 +12,8 @@ module ip_header_rx
 
     input   logic           eth_type_ip_valid,
     output  logic           ip_header_done,
-    output  logic           ip_header_valid,
-
-    output  logic   [15:0]  checksum_calc_pin,
-    output  logic   [3:0]   state_ip_pin
+    output  logic           ip_header_valid
 );
-
-    ///
-    assign state_ip_pin = state_ip;
-    assign checksum_calc_pin = checksum_calc;
-    ///
 
     localparam  IPHL        =    8'h45;
     localparam  TOS         =    8'h00;

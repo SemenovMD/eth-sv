@@ -7,7 +7,7 @@ module udp_header_rx
     input   logic   [7:0]   data_in,
     input   logic           data_valid,
 
-    input   logic   [15:0]  port_s,
+    output  logic   [15:0]  port_s,
     input   logic   [15:0]  port_d,
 
     input   logic           ip_header_done,
@@ -20,7 +20,6 @@ module udp_header_rx
 
     logic   [10:0]  count;
 
-    logic   [7:0]   port_s_buf;
     logic   [7:0]   port_d_buf;
     logic   [15:0]  len_buf;
 
@@ -53,7 +52,7 @@ module udp_header_rx
                             state <= WAIT;
                         end else begin
                             state <= PORT_SOURCE;
-                            port_s_buf <= data_in;
+                            port_s[15:8] <= data_in;
                         end
                     end
                 PORT_SOURCE:
@@ -61,11 +60,8 @@ module udp_header_rx
                         if (!ip_header_valid) begin
                             state <= WAIT;
                         end else begin
-                            if ({port_s_buf, data_in} != port_s) begin
-                                state <= WAIT;
-                            end else begin
-                                state <= PORT_DESTINATION;
-                            end
+                            state <= PORT_DESTINATION;
+                            port_s[7:0] <= data_in;
                         end
                     end
                 PORT_DESTINATION:
@@ -80,6 +76,10 @@ module udp_header_rx
                             end
 
                             count <= 'd0;
+                        end
+
+                        if (count == 0) begin
+                            port_d_buf <= data_in;
                         end
                     end
                 LENGTH:

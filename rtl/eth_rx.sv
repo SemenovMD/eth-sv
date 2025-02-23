@@ -1,7 +1,7 @@
 module eth_rx
 
 (
-    input   logic           aresetn,
+    input   logic           gmii_rstn,
 
     input   logic   [7:0]   gmii_rxd,
     input   logic           gmii_rx_dv,
@@ -18,17 +18,13 @@ module eth_rx
     output  logic           crc_valid,
     output  logic           crc_error,
 
-    output  logic   [15:0]  checksum_calc_pin,           
-    output  logic           ip_header_valid_pin,
-    output  logic   [3:0]   state_ip_pin,
-    output  logic           eth_type_ip_valid_pin
+    input   logic           aclk,
+    input   logic           aresetn,
+
+    output  logic   [31:0]  m_axis_tdata,
+    output  logic           m_axis_tvalid,
+    input   logic           m_axis_tready
 );
-    ///
-
-    assign ip_header_valid_pin = ip_header_valid;
-    assign eth_type_ip_valid_pin = eth_type_ip_valid;
-
-    ///
 
     logic   [7:0]   data_out;
     logic           data_valid;
@@ -40,6 +36,16 @@ module eth_rx
 
     logic           ip_header_done;
     logic           ip_header_valid;
+
+    logic           udp_data_valid;
+    logic   [15:0]  port_s;
+    logic   [15:0]  port_d;
+
+    assign port_d = 16'h13_8D;
+
+    logic   [31:0]  s_axis_tdata;
+    logic           s_axis_tvalid;
+    logic           s_axis_tready;
 
     gmii_rx_to_valid gmii_rx_to_valid_inst
     (
@@ -53,7 +59,7 @@ module eth_rx
     preamble_sfd_rx preamble_sfd_rx_inst
     (
         .aclk(gmii_rx_clk),
-        .aresetn(aresetn),
+        .aresetn(gmii_rstn),
         .data_in(data_out),
         .data_valid(data_valid),
         .preamble_sfd_valid(preamble_sfd_valid)
@@ -62,7 +68,7 @@ module eth_rx
     eth_header_rx eth_header_rx_inst
     (
         .aclk(gmii_rx_clk),
-        .aresetn(aresetn),
+        .aresetn(gmii_rstn),
         .data_in(data_out),
         .data_valid(data_valid),
         .mac_d_addr(mac_d_addr),
@@ -75,7 +81,7 @@ module eth_rx
     arp_data_rx arp_data_rx_inst
     (
         .aclk(gmii_rx_clk),
-        .aresetn(aresetn),
+        .aresetn(gmii_rstn),
         .data_in(data_out),
         .data_valid(data_valid),
         .mac_s_addr(rq_mac_s_addr),
@@ -89,22 +95,58 @@ module eth_rx
     ip_header_rx ip_header_rx_inst
     (
         .aclk(gmii_rx_clk),
-        .aresetn(aresetn),
+        .aresetn(gmii_rstn),
         .data_in(data_out),
         .data_valid(data_valid),
         .ip_s_addr(ip_s_addr),
         .ip_d_addr(ip_d_addr),
         .eth_type_ip_valid(eth_type_ip_valid),
         .ip_header_done(ip_header_done),
+        .ip_header_valid(ip_header_valid)
+    );
+
+    udp_header_rx udp_header_rx_inst
+    (
+        .aclk(gmii_rx_clk),
+        .aresetn(gmii_rstn),
+        .data_in(data_out),
+        .data_valid(data_valid),
+        .port_s(port_s),
+        .port_d(port_d),
+        .ip_header_done(ip_header_done),
         .ip_header_valid(ip_header_valid),
-        .checksum_calc_pin(checksum_calc_pin),
-        .state_ip_pin(state_ip_pin)
+        .udp_data_valid(udp_data_valid)
+    );
+
+    conv_8_32 conv_8_32_inst
+    (
+        .aclk(gmii_rx_clk),
+        .aresetn(gmii_rstn),
+        .data_in(data_out),
+        .udp_data_valid(udp_data_valid),
+        .m_axis_tdata(s_axis_tdata),
+        .m_axis_tvalid(s_axis_tvalid),
+        .m_axis_tready(s_axis_tready)
+    );
+
+    asyn_fifo_rx asyn_fifo_rx_inst
+    (
+        .aclk_wr(gmii_rx_clk),
+        .aresetn_wr(gmii_rstn),
+        .aclk_rd(aclk),
+        .aresetn_rd(aresetn),
+        .m_axis_tdata(m_axis_tdata),
+        .m_axis_tvalid(m_axis_tvalid),
+        .m_axis_tready(m_axis_tready),
+        .s_axis_tdata(s_axis_tdata),
+        .s_axis_tvalid(s_axis_tvalid),
+        .s_axis_tready(s_axis_tready)
     );
 
     fcs_rx fcs_rx_inst
     (
         .aclk(gmii_rx_clk),
-        .aresetn(aresetn),
+        .aresetn(gmii_rstn),
         .data_in(data_out),
         .data_valid(data_valid),
         .preamble_sfd_valid(preamble_sfd_valid),
