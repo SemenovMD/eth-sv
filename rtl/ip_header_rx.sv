@@ -11,6 +11,7 @@ module ip_header_rx
     input   logic   [31:0]  ip_d_addr,
 
     input   logic           eth_type_ip_valid,
+    output  logic           ip_header_done,
     output  logic           ip_header_valid,
 
     output  logic   [15:0]  checksum_calc_pin,
@@ -61,7 +62,7 @@ module ip_header_rx
         IP_HEADER_CHECKSUM,
         IP_SOURCE,
         IP_DESTINATION,
-        DONE
+        VALID
     } state_ip_type;
 
     state_ip_type state_ip;
@@ -71,6 +72,7 @@ module ip_header_rx
         if (!aresetn_sum) begin
             state_ip <= IPHL_CHECK;
             count <= 'd0;
+            ip_header_done <= 'd0;
             ip_header_valid <= 'd0;
         end else begin
             case (state_ip)
@@ -173,19 +175,21 @@ module ip_header_rx
                             count <= count + 1;
                         end else begin
                             if ((ip_s_addr_buf == ip_s_addr) && ({ip_d_addr_buf[31:8], data_in} == ip_d_addr)) begin
-                                state_ip <= DONE;
-                                count <= 'd0;
+                                state_ip <= VALID;
                             end else begin
                                 state_ip <= IPHL_CHECK;
-                                count <= 'd0;
                             end
+
+                            count <= 'd0;
+                            ip_header_done <= 'd1;
                         end
 
                         ip_d_addr_buf[31 - count*8 -: 8] <= data_in;
                     end
-                DONE:
+                VALID:
                     begin
                         state_ip <= IPHL_CHECK;
+                        ip_header_done <= 'd0;
 
                         if (checksum_buf == checksum_calc) begin
                             ip_header_valid <= 'd1;

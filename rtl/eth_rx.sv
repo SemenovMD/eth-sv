@@ -38,6 +38,7 @@ module eth_rx
     logic           eth_type_arp_valid;
     logic           eth_type_ip_valid;
 
+    logic           ip_header_done;
     logic           ip_header_valid;
 
     gmii_rx_to_valid gmii_rx_to_valid_inst
@@ -94,6 +95,7 @@ module eth_rx
         .ip_s_addr(ip_s_addr),
         .ip_d_addr(ip_d_addr),
         .eth_type_ip_valid(eth_type_ip_valid),
+        .ip_header_done(ip_header_done),
         .ip_header_valid(ip_header_valid),
         .checksum_calc_pin(checksum_calc_pin),
         .state_ip_pin(state_ip_pin)
