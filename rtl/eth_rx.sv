@@ -23,8 +23,24 @@ module eth_rx
 
     output  logic   [31:0]  m_axis_tdata,
     output  logic           m_axis_tvalid,
-    input   logic           m_axis_tready
+    output  logic           m_axis_tlast,
+    input   logic           m_axis_tready,
+
+    output  logic   [31:0]  s_axis_tdata_pin,
+    output  logic           s_axis_tvalid_pin,
+    output  logic           s_axis_tlast_pin,
+    output  logic           s_axis_tready_pin,
+
+    output  logic           flag_pin,
+    output  logic           flag_last_pin
 );
+
+    ////
+    assign s_axis_tdata_pin = s_axis_tdata;
+    assign s_axis_tvalid_pin = s_axis_tvalid;
+    assign s_axis_tlast_pin = s_axis_tlast;
+    assign s_axis_tready_pin = s_axis_tready;
+    ////
 
     logic   [7:0]   data_out;
     logic           data_valid;
@@ -45,6 +61,7 @@ module eth_rx
 
     logic   [31:0]  s_axis_tdata;
     logic           s_axis_tvalid;
+    logic           s_axis_tlast;
     logic           s_axis_tready;
 
     gmii_rx_to_valid gmii_rx_to_valid_inst
@@ -125,23 +142,41 @@ module eth_rx
         .data_in(data_out),
         .udp_data_valid(udp_data_valid),
         .m_axis_tdata(s_axis_tdata),
+        .m_axis_tlast(s_axis_tlast),
         .m_axis_tvalid(s_axis_tvalid),
-        .m_axis_tready(s_axis_tready)
+        .m_axis_tready(s_axis_tready),
+        .flag_pin(flag_pin),
+        .flag_last_pin(flag_last_pin)
     );
 
-    asyn_fifo_rx asyn_fifo_rx_inst
+    fifo_rx fifo_rx_inst
     (
-        .aclk_wr(gmii_rx_clk),
-        .aresetn_wr(gmii_rstn),
-        .aclk_rd(aclk),
-        .aresetn_rd(aresetn),
-        .m_axis_tdata(m_axis_tdata),
-        .m_axis_tvalid(m_axis_tvalid),
-        .m_axis_tready(m_axis_tready),
+        .aclk(gmii_rx_clk),
+        .aresetn(gmii_rstn),
+        .crc_valid(crc_valid),
         .s_axis_tdata(s_axis_tdata),
         .s_axis_tvalid(s_axis_tvalid),
-        .s_axis_tready(s_axis_tready)
+        .s_axis_tlast(s_axis_tlast),
+        .s_axis_tready(s_axis_tready),
+        .m_axis_tdata(m_axis_tdata),
+        .m_axis_tvalid(m_axis_tvalid),
+        .m_axis_tlast(m_axis_tlast),
+        .m_axis_tready(m_axis_tready)
     );
+
+    // asyn_fifo_rx asyn_fifo_rx_inst
+    // (
+    //     .aclk_wr(gmii_rx_clk),
+    //     .aresetn_wr(gmii_rstn),
+    //     .aclk_rd(aclk),
+    //     .aresetn_rd(aresetn),
+    //     .m_axis_tdata(m_axis_tdata),
+    //     .m_axis_tvalid(m_axis_tvalid),
+    //     .m_axis_tready(m_axis_tready),
+    //     .s_axis_tdata(s_axis_tdata),
+    //     .s_axis_tvalid(s_axis_tvalid),
+    //     .s_axis_tready(s_axis_tready)
+    // );
 
     fcs_rx fcs_rx_inst
     (

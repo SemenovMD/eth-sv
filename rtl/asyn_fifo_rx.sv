@@ -37,16 +37,10 @@ module asyn_fifo_rx
     logic                                               fifo_full;
 
     // Converter Binary -> Gray index WRITE
-    always_comb
-    begin
-        gray_index_wr = (bin_index_wr >> 1) ^ bin_index_wr;
-    end
+    assign gray_index_wr = (bin_index_wr >> 1) ^ bin_index_wr;
 
     // Converter Binary -> Gray index READ
-    always_comb
-    begin
-        gray_index_rd = (bin_index_rd >> 1) ^ bin_index_rd;
-    end
+    assign gray_index_rd = (bin_index_rd >> 1) ^ bin_index_rd;
 
     // Synchronizer WRITE
     always @(posedge aclk_wr)
