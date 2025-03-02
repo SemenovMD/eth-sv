@@ -1,5 +1,5 @@
 # Variables
-SIM = tb/preamble_sfd_tx/vsim/vsim.do
+SIM = tb/eth_rx/vsim/vsim.do
 
 # Targets
 all: sim

@@ -24,8 +24,23 @@ module eth_rx
     output  logic   [31:0]  m_axis_tdata_asyn_fifo,
     output  logic           m_axis_tvalid_asyn_fifo,
     output  logic           m_axis_tlast_asyn_fifo,
-    input   logic           m_axis_tready_asyn_fifo
+    input   logic           m_axis_tready_asyn_fifo,
+
+    output  logic   [31:0]  s_axis_tdata_pin,
+    output  logic           s_axis_tvalid_pin,
+    output  logic           s_axis_tlast_pin,
+    output  logic           s_axis_tready_pin,
+
+    output  logic           flag_pin,
+    output  logic           flag_last_pin
 );
+
+    ////
+    assign s_axis_tdata_pin = s_axis_tdata;
+    assign s_axis_tvalid_pin = s_axis_tvalid;
+    assign s_axis_tlast_pin = s_axis_tlast;
+    assign s_axis_tready_pin = s_axis_tready;
+    ////
 
     logic   [7:0]   data_out;
     logic           data_valid;
@@ -39,7 +54,6 @@ module eth_rx
     logic           ip_header_valid;
 
     logic           udp_data_valid;
-    logic           udp_data_tlast;
     logic   [15:0]  port_s;
     logic   [15:0]  port_d;
 
@@ -109,7 +123,8 @@ module eth_rx
         .ip_s_addr(ip_s_addr),
         .ip_d_addr(ip_d_addr),
         .eth_type_ip_valid(eth_type_ip_valid),
-        .ip_header_done(ip_header_done)
+        .ip_header_done(ip_header_done),
+        .ip_header_valid(ip_header_valid)
     );
 
     udp_header_rx udp_header_rx_inst
@@ -121,8 +136,8 @@ module eth_rx
         .port_s(port_s),
         .port_d(port_d),
         .ip_header_done(ip_header_done),
-        .udp_data_valid(udp_data_valid),
-        .udp_data_tlast(udp_data_tlast)
+        .ip_header_valid(ip_header_valid),
+        .udp_data_valid(udp_data_valid)
     );
 
     conv_8_32 conv_8_32_inst
@@ -131,11 +146,12 @@ module eth_rx
         .aresetn(gmii_rstn),
         .data_in(data_out),
         .udp_data_valid(udp_data_valid),
-        .udp_data_tlast(udp_data_tlast),
         .m_axis_tdata(s_axis_tdata),
         .m_axis_tlast(s_axis_tlast),
         .m_axis_tvalid(s_axis_tvalid),
-        .m_axis_tready(s_axis_tready)
+        .m_axis_tready(s_axis_tready),
+        .flag_pin(flag_pin),
+        .flag_last_pin(flag_last_pin)
     );
 
     fifo_rx fifo_rx_inst
@@ -161,7 +177,7 @@ module eth_rx
         .aresetn_rd(aresetn),
         .m_axis_tdata(m_axis_tdata_asyn_fifo),
         .m_axis_tvalid(m_axis_tvalid_asyn_fifo),
-        .m_axis_tlast(m_axis_tlast_asyn_fifo),
+        .m_axis_tlast(m_axis_tvalid_asyn_fifo),
         .m_axis_tready(m_axis_tready_asyn_fifo),
         .s_axis_tdata(m_axis_tdata),
         .s_axis_tvalid(m_axis_tvalid),

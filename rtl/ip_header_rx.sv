@@ -11,8 +11,7 @@ module ip_header_rx
     input   logic   [31:0]  ip_d_addr,
 
     input   logic           eth_type_ip_valid,
-    output  logic           ip_header_done,
-    output  logic           ip_header_valid
+    output  logic           ip_header_done
 );
 
     localparam  IPHL        =    8'h45;
@@ -31,11 +30,6 @@ module ip_header_rx
     logic   [15:0]  checksum_buf;
     logic   [31:0]  ip_s_addr_buf;
     logic   [31:0]  ip_d_addr_buf;
-
-    logic   [31:0]  sum_reg;
-    logic   [31:0]  sum;
-    logic   [31:0]  carry;
-    logic   [15:0]  checksum_calc;
 
     logic           aresetn_sum;
 
@@ -65,7 +59,6 @@ module ip_header_rx
             state_ip <= IPHL_CHECK;
             count <= 'd0;
             ip_header_done <= 'd0;
-            ip_header_valid <= 'd0;
         end else begin
             case (state_ip)
                 IPHL_CHECK:
@@ -80,7 +73,7 @@ module ip_header_rx
                             end
                         end
 
-                        ip_header_valid <= 'd0;
+                        ip_header_done <= 'd0;
                     end
                 TOS_CHECK:
                     begin
@@ -167,100 +160,19 @@ module ip_header_rx
                             count <= count + 1;
                         end else begin
                             if ((ip_s_addr_buf == ip_s_addr) && ({ip_d_addr_buf[31:8], data_in} == ip_d_addr)) begin
-                                state_ip <= VALID;
+                                state_ip <= IPHL_CHECK;
+                                ip_header_done <= 'd1;
                             end else begin
                                 state_ip <= IPHL_CHECK;
                             end
 
                             count <= 'd0;
-                            ip_header_done <= 'd1;
                         end
 
                         ip_d_addr_buf[31 - count*8 -: 8] <= data_in;
                     end
-                VALID:
-                    begin
-                        state_ip <= IPHL_CHECK;
-                        ip_header_done <= 'd0;
-
-                        if (checksum_buf == checksum_calc) begin
-                            ip_header_valid <= 'd1;
-                        end
-                    end
             endcase
         end
-    end
-
-    // Calculation Checksum
-    typedef enum logic [2:0] 
-    {  
-        STAGE_0,
-        STAGE_1,
-        STAGE_2,
-        STAGE_3,
-        STAGE_4,
-        DELAY,
-        CLEAR
-    } state_checksum_type;
-
-    state_checksum_type state_checksum;
-
-    always_ff @(posedge aclk) begin
-        if (!aresetn_sum) begin
-            state_checksum <= STAGE_0;
-            sum_reg <= 'd0;
-        end else begin
-            case (state_checksum)
-                STAGE_0:
-                    begin
-                        if (!((state_ip == IP_SOURCE) && (count == 3))) begin
-                            state_checksum <= STAGE_0;
-                        end else begin
-                            state_checksum <= STAGE_1;
-                            sum_reg <= {IPHL, TOS} + len_buf;
-                        end
-                    end
-                STAGE_1:
-                    begin
-                        state_checksum <= STAGE_2;
-                        sum_reg <= sum_reg + idp_buf + FLAG_OFFSET;
-                    end
-                STAGE_2:
-                    begin
-                        state_checksum <= STAGE_3;
-                        sum_reg <= sum_reg + {ttl_buf, IP_UDP_TYPE} + 16'h0000;
-                    end
-                STAGE_3:
-                    begin
-                        state_checksum <= STAGE_4;
-                        sum_reg <= sum_reg + ip_s_addr_buf[31:16] + ip_s_addr_buf[15:0];
-                    end
-                STAGE_4:
-                    begin
-                        state_checksum <= DELAY;
-                        sum_reg <= sum_reg + ip_d_addr_buf[31:16] + {ip_d_addr_buf[15:8], data_in};
-                    end
-                DELAY:
-                    begin
-                        state_checksum <= CLEAR;
-                    end
-                CLEAR:
-                    begin
-                        state_checksum <= STAGE_0;
-                        sum_reg <= 'd0;
-                    end
-            endcase
-        end
-    end
-
-    always_comb begin
-        carry = sum_reg >> 16;
-        sum = (sum_reg & 32'h0000FFFF) + carry;
-
-        carry = sum >> 16;
-        sum = sum + carry;
-
-        checksum_calc = ~sum[15:0];
     end
 
 endmodule

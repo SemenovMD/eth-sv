@@ -6,12 +6,12 @@ module fifo_rx
     
     input   logic                           crc_valid,
 
-    input   logic   [AXI_DATA_WIDTH-1:0]    s_axis_tdata,
+    input   logic   [32-1:0]                s_axis_tdata,
     input   logic                           s_axis_tvalid,
     input   logic                           s_axis_tlast,
     output  logic                           s_axis_tready,
 
-    output  logic   [AXI_DATA_WIDTH-1:0]    m_axis_tdata,
+    output  logic   [32-1:0]                m_axis_tdata,
     output  logic                           m_axis_tvalid,
     output  logic                           m_axis_tlast,
     input   logic                           m_axis_tready
@@ -56,15 +56,14 @@ module fifo_rx
                             state_wr <= IDLE_WR;
                         end else begin
                             state_wr <= HAND_WR;
-                            s_axis_tready <= 'd1;
-                            index_wr <= index_wr + 1;
                             mem_fifo[index_wr] <= s_axis_tdata;
+                            index_wr <= index_wr + 1;
 
-                            if (!s_axis_tlast) begin
-                                index_wr <= index_wr + 1;
-                            end else begin
+                            if (s_axis_tlast) begin
                                 state_wr <= CHECKSUM_CRC;
                             end
+
+                            s_axis_tready <= 'd1;
                         end
                     end
                 HAND_WR:
@@ -159,7 +158,7 @@ module fifo_rx
                         m_axis_tvalid <= 'd0;
                         m_axis_tlast <= 'd0;
 
-                        if (index_rd < AXI_DATA_DEPTH - 256) begin
+                        if (index_rd < AXI_DATA_DEPTH - 256 - 1) begin
                             index_frame_rd <= index_frame_rd + 1;
                         end else begin
                             index_frame_rd <= 'd0;

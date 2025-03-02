@@ -9,50 +9,42 @@ module asyn_fifo_rx
 
     output  logic   [31:0]  m_axis_tdata,
     output  logic           m_axis_tvalid,
+    output  logic           m_axis_tlast,
     input   logic           m_axis_tready,
 
     input   logic   [31:0]  s_axis_tdata,
     input   logic           s_axis_tvalid,
+    input   logic           s_axis_tlast,
     output  logic           s_axis_tready
 );
 
     localparam      AXI_DATA_WIDTH  =   32;
-    localparam      AXI_DATA_DEPTH  =   512;
+    localparam      AXI_DATA_DEPTH  =   256;
 
     logic           [AXI_DATA_WIDTH-1:0]                mem             [AXI_DATA_DEPTH];
 
-    logic           [$clog2(AXI_DATA_DEPTH)-1:0]        bin_index_rd;
-    logic           [$clog2(AXI_DATA_DEPTH)-1:0]        bin_index_wr;
+    logic           [7:0]                               index_rd;
+    logic           [7:0]                               index_wr;
 
-    logic           [$clog2(AXI_DATA_DEPTH)-1:0]        gray_index_rd;
-    logic           [$clog2(AXI_DATA_DEPTH)-1:0]        gray_index_wr;
+    logic                                               flag_wr;
+    logic                                               flag_rd;
 
-    logic           [$clog2(AXI_DATA_DEPTH)-1:0]        gray_index_rd_sync;
-    logic           [$clog2(AXI_DATA_DEPTH)-1:0]        gray_index_wr_sync;
-
-    logic           [$clog2(AXI_DATA_DEPTH)-1:0]        q1_wr;
-    logic           [$clog2(AXI_DATA_DEPTH)-1:0]        q1_rd;
-
-    logic                                               fifo_empty;
-    logic                                               fifo_full;
-
-    // Converter Binary -> Gray index WRITE
-    assign gray_index_wr = (bin_index_wr >> 1) ^ bin_index_wr;
-
-    // Converter Binary -> Gray index READ
-    assign gray_index_rd = (bin_index_rd >> 1) ^ bin_index_rd;
+    logic                                               flag_wr_sync_0;
+    logic                                               flag_wr_sync_1;
+    logic                                               flag_rd_sync_0;
+    logic                                               flag_rd_sync_1;
 
     // Synchronizer WRITE
     always @(posedge aclk_wr)
     begin
         if (!aresetn_wr)
         begin
-            q1_rd <= '0;
-            gray_index_rd_sync <= '0;
+            flag_rd_sync_0 <= 'd0;
+            flag_rd_sync_1 <= 'd0;
         end else
         begin
-            q1_rd <= gray_index_rd;
-            gray_index_rd_sync <= q1_rd;
+            flag_rd_sync_0 <= flag_rd;
+            flag_rd_sync_1 <= flag_rd_sync_0;
         end
     end
 
@@ -61,20 +53,21 @@ module asyn_fifo_rx
     begin
         if (!aresetn_rd)
         begin
-            q1_wr <= '0;
-            gray_index_wr_sync <= '0;
+            flag_wr_sync_0 <= 'd0;
+            flag_wr_sync_1 <= 'd0;
         end else
         begin
-            q1_wr <= gray_index_wr;
-            gray_index_wr_sync <= q1_wr;
+            flag_wr_sync_0 <= flag_wr;
+            flag_wr_sync_1 <= flag_wr_sync_0;
         end
     end
 
     // FSM WRITE
-    typedef enum logic
+    typedef enum logic [1:0]
     {  
         IDLE_WR,
-        HAND_WR
+        DONE_WR,
+        WAIT_RD
     } state_type_wr;
 
     state_type_wr state_wr;
@@ -84,44 +77,56 @@ module asyn_fifo_rx
         if (!aresetn_wr)
         begin
             state_wr <= IDLE_WR;
-            s_axis_tready <= 0;
-            bin_index_wr <= '0;
+            s_axis_tready <= 'd0;
+            index_wr <= 'd0;
+            flag_wr <= 'd0;
         end else
         begin
             case (state_wr)
                 IDLE_WR:
                     begin
-                        if (fifo_full)
-                        begin
+                        if (!s_axis_tvalid) begin
                             state_wr <= IDLE_WR;
-                        end else
-                        begin
-                            state_wr <= HAND_WR;
-                            s_axis_tready <= 1;
+                        end else begin
+                            if (s_axis_tlast) begin
+                                state_wr <= DONE_WR;
+                                flag_wr <= 'd1;
+                            end else begin
+                                index_wr <= index_wr + 1;
+                            end
+
+                            mem[index_wr] <= s_axis_tdata;
                         end
+
+                        s_axis_tready <= 'd1;
                     end
-                HAND_WR:
+                DONE_WR:
                     begin
-                        if (!s_axis_tvalid)
-                        begin
-                            state_wr <= HAND_WR;
-                        end else
-                        begin
+                        state_wr <= WAIT_RD;
+                        s_axis_tready <= 'd0;
+                    end
+                WAIT_RD:
+                    begin
+                        if (!flag_rd_sync_1) begin
+                            state_wr <= WAIT_RD;
+                        end else begin
                             state_wr <= IDLE_WR;
-                            s_axis_tready <= 0;
-                            bin_index_wr <= bin_index_wr + 1;
-                            mem[bin_index_wr] <= s_axis_tdata;
+                            index_wr <= 'd0;
                         end
+
+                        flag_wr <= 'd0;
                     end
             endcase
         end
     end
 
     // FSM READ
-    typedef enum logic
+    typedef enum logic [1:0]
     {  
-        IDLE_RD,
-        HAND_RD
+        WAIT_WR,
+        BURST_RD,
+        LAST_RD,
+        DONE_RD
     } state_type_rd;
 
     state_type_rd state_rd;
@@ -130,44 +135,57 @@ module asyn_fifo_rx
     begin
         if (!aresetn_rd)
         begin
-            state_rd <= IDLE_RD;
-            m_axis_tdata <= '0;
-            m_axis_tvalid <= 0;
-            bin_index_rd <= '0;
+            state_rd <= WAIT_WR;
+            m_axis_tvalid <= 'd0;
+            m_axis_tlast <= 'd0;
+            index_rd <= 'd0;
+            flag_rd <= 'd0;
         end else
         begin
             case (state_rd)
-                IDLE_RD:
+                WAIT_WR:
                     begin
-                        if (fifo_empty)
-                        begin
-                            state_rd <= IDLE_RD;
-                        end else
-                        begin
-                            state_rd <= HAND_RD;
-                            m_axis_tdata <= mem[bin_index_rd];
-                            m_axis_tvalid <= 1;
+                        if (!flag_wr_sync_1) begin
+                            state_rd <= WAIT_WR; 
+                        end else begin
+                            state_rd <= BURST_RD; 
                         end
                     end
-                HAND_RD:
+                BURST_RD:
                     begin
                         if (!m_axis_tready)
                         begin
-                            state_rd <= HAND_RD;
+                            state_rd <= BURST_RD;
                         end else
                         begin
-                            state_rd <= IDLE_RD;
-                            m_axis_tdata <= '0;
-                            m_axis_tvalid <= 0;
-                            bin_index_rd <= bin_index_rd + 1;
+                            if (index_rd != index_wr) begin
+                                index_rd <= index_rd + 1;
+                            end else begin
+                                state_rd <= LAST_RD;
+                                index_rd <= index_rd + 1;
+                                m_axis_tlast <= 'd1;
+                                flag_rd <= 'd1;
+                            end
+
+                            m_axis_tdata <= mem[index_rd];
                         end
+
+                        m_axis_tvalid <= 'd1;
+                    end
+                LAST_RD:
+                    begin
+                        state_rd <= DONE_RD;
+                        m_axis_tvalid <= 'd0;
+                        m_axis_tlast <= 'd0;
+                        index_rd <= 'd0;
+                    end
+                DONE_RD:
+                    begin
+                        state_rd <= WAIT_WR;
+                        flag_rd <= 'd0;
                     end
             endcase
         end
     end
-
-    // Logic FIFO full and empty
-    assign fifo_empty   = (gray_index_wr_sync == gray_index_rd);
-    assign fifo_full    = (gray_index_wr == {~gray_index_rd_sync[$clog2(AXI_DATA_DEPTH)-1:$clog2(AXI_DATA_DEPTH)-1], gray_index_rd_sync[$clog2(AXI_DATA_DEPTH)-2:0]});
 
 endmodule

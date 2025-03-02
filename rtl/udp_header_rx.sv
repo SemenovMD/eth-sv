@@ -13,7 +13,9 @@ module udp_header_rx
     input   logic           ip_header_done,
     input   logic           ip_header_valid,
 
-    output  logic           udp_data_valid
+    output  logic           udp_data_valid,
+    output  logic           udp_data_tlast,
+    output  logic   [7:0]   length
 );
 
     localparam  LEN_UDP_HEADER  =   8;
@@ -26,6 +28,7 @@ module udp_header_rx
     logic           aresetn_sum;
 
     assign aresetn_sum = aresetn & data_valid;
+    assign length = (len_buf - 8)/4;
 
     typedef enum logic [2:0] 
     {  
@@ -57,12 +60,8 @@ module udp_header_rx
                     end
                 PORT_SOURCE:
                     begin
-                        if (!ip_header_valid) begin
-                            state <= WAIT;
-                        end else begin
-                            state <= PORT_DESTINATION;
-                            port_s[7:0] <= data_in;
-                        end
+                        state <= PORT_DESTINATION;
+                        port_s[7:0] <= data_in;
                     end
                 PORT_DESTINATION:
                     begin
@@ -111,6 +110,12 @@ module udp_header_rx
                             state <= WAIT;
                             count <= 'd0;
                             udp_data_valid <= 'd0;
+                        end
+
+                        if (count == len_buf - LEN_UDP_HEADER - 2) begin
+                            udp_data_tlast <= 'd1;
+                        end else begin
+                            udp_data_tlast <= 'd0;
                         end
                     end
             endcase
