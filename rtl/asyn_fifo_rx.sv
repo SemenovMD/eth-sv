@@ -18,21 +18,20 @@ module asyn_fifo_rx
     output  logic           s_axis_tready
 );
 
-    localparam      AXI_DATA_WIDTH  =   32;
     localparam      AXI_DATA_DEPTH  =   256;
 
-    logic           [AXI_DATA_WIDTH-1:0]                mem             [AXI_DATA_DEPTH];
+    logic   [31:0]  mem [AXI_DATA_DEPTH-1:0];
 
-    logic           [7:0]                               index_rd;
-    logic           [7:0]                               index_wr;
+    logic   [7:0]   index_rd;
+    logic   [7:0]   index_wr;
 
-    logic                                               flag_wr;
-    logic                                               flag_rd;
+    logic           flag_wr;
+    logic           flag_rd;
 
-    logic                                               flag_wr_sync_0;
-    logic                                               flag_wr_sync_1;
-    logic                                               flag_rd_sync_0;
-    logic                                               flag_rd_sync_1;
+    logic           flag_wr_sync_0;
+    logic           flag_wr_sync_1;
+    logic           flag_rd_sync_0;
+    logic           flag_rd_sync_1;
 
     // Synchronizer WRITE
     always @(posedge aclk_wr)

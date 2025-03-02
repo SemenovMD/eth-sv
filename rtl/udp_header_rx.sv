@@ -14,8 +14,7 @@ module udp_header_rx
     input   logic           ip_header_valid,
 
     output  logic           udp_data_valid,
-    output  logic           udp_data_tlast,
-    output  logic   [7:0]   length
+    output  logic           udp_data_tlast
 );
 
     localparam  LEN_UDP_HEADER  =   8;
@@ -28,7 +27,6 @@ module udp_header_rx
     logic           aresetn_sum;
 
     assign aresetn_sum = aresetn & data_valid;
-    assign length = (len_buf - 8)/4;
 
     typedef enum logic [2:0] 
     {  

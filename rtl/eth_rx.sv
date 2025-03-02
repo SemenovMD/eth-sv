@@ -40,6 +40,7 @@ module eth_rx
 
     logic           udp_data_valid;
     logic           udp_data_tlast;
+    
     logic   [15:0]  port_s;
     logic   [15:0]  port_d;
 
