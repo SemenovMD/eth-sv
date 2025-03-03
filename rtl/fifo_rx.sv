@@ -4,6 +4,7 @@ module fifo_rx
     input   logic                           aclk,
     input   logic                           aresetn,
     
+    input   logic                           data_valid,
     input   logic                           crc_valid,
 
     input   logic   [31:0]                  s_axis_tdata,
@@ -58,7 +59,7 @@ module fifo_rx
                             mem_fifo[index_wr] <= s_axis_tdata;
                             index_wr <= index_wr + 1;
 
-                            if (s_axis_tlast) begin
+                            if (s_axis_tlast || ~data_valid) begin
                                 state_wr <= CHECKSUM_CRC;
                             end
 

@@ -50,17 +50,21 @@ module  conv_8_32
                     end
                 DATA_WR:
                     begin
-                        if (count != 3) begin
-                            count <= count + 1;
-                            flag <= 'd0;
+                        if (!udp_data_valid) begin
+                            state_wr <= DONE_WR;
                         end else begin
-                            count <= 'd0;
-
-                            if (udp_data_tlast) begin
-                                state_wr <= DONE_WR;
-                                flag_last <= 'd1;
+                            if (count != 3) begin
+                                count <= count + 1;
+                                flag <= 'd0;
                             end else begin
-                                flag <= 'd1;
+                                count <= 'd0;
+
+                                if (udp_data_tlast) begin
+                                    state_wr <= DONE_WR;
+                                    flag_last <= 'd1;
+                                end else begin
+                                    flag <= 'd1;
+                                end
                             end
                         end
 

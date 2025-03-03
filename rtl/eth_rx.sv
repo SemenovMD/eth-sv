@@ -143,6 +143,7 @@ module eth_rx
     (
         .aclk(gmii_rx_clk),
         .aresetn(gmii_rstn),
+        .data_valid(data_valid),
         .crc_valid(crc_valid),
         .s_axis_tdata(s_axis_tdata),
         .s_axis_tvalid(s_axis_tvalid),
