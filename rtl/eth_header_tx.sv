@@ -83,12 +83,14 @@ module eth_header_tx
                             count <= 'd0;
 
                             case ({eth_header_arp_tx_start, eth_header_ip_tx_start})
+                                2'b11: eth_header_arp_tx_done <= 'd1;
                                 2'b01: eth_header_ip_tx_done <= 'd1;
                                 2'b10: eth_header_arp_tx_done <= 'd1;
                             endcase
                         end
 
                         case ({eth_header_arp_tx_start, eth_header_ip_tx_start})
+                            2'b11: data_out <= ETH_ARP_TYPE[15 - count*8 -: 8];
                             2'b01: data_out <= ETH_IP_TYPE[15 - count*8 -: 8];
                             2'b10: data_out <= ETH_ARP_TYPE[15 - count*8 -: 8];
                         endcase

@@ -90,14 +90,12 @@ module asyn_fifo_tx
                             if (s_axis_tlast) begin
                                 state_wr <= DONE_WR;
                                 flag_wr <= 'd1;
-                            end else begin
-                                index_wr <= index_wr + 1;
                             end
 
+                            s_axis_tready <= 'd1;
+                            index_wr <= index_wr + 1;
                             mem[index_wr] <= s_axis_tdata;
                         end
-
-                        s_axis_tready <= 'd1;
                     end
                 DONE_WR:
                     begin
@@ -147,7 +145,10 @@ module asyn_fifo_tx
                         if (!flag_wr_sync_1) begin
                             state_rd <= WAIT_WR; 
                         end else begin
-                            state_rd <= BURST_RD; 
+                            state_rd <= BURST_RD;
+                            index_rd <= index_rd + 1;
+                            m_axis_tdata <= mem[index_rd];
+                            m_axis_tvalid <= 'd1;
                         end
                     end
                 BURST_RD:
@@ -157,19 +158,15 @@ module asyn_fifo_tx
                             state_rd <= BURST_RD;
                         end else
                         begin
-                            if (index_rd != index_wr) begin
-                                index_rd <= index_rd + 1;
-                            end else begin
+                            if (index_rd == index_wr) begin
                                 state_rd <= LAST_RD;
-                                index_rd <= index_rd + 1;
                                 m_axis_tlast <= 'd1;
                                 flag_rd <= 'd1;
                             end
 
+                            index_rd <= index_rd + 1;
                             m_axis_tdata <= mem[index_rd];
                         end
-
-                        m_axis_tvalid <= 'd1;
                     end
                 LAST_RD:
                     begin

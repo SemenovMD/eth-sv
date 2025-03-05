@@ -13,7 +13,8 @@ module arp_cache
 
     input   logic           arp_data_done,
     input   logic           crc_valid,
-    output  logic           arp_resp_start
+    output  logic           arp_resp_start,
+    input   logic           arp_resp_end
 );
 
     assign  ip_d_addr   =   {8'd192, 8'd168, 8'd1, 8'd120};
@@ -57,8 +58,12 @@ module arp_cache
                     end
                 ARP_RESP:
                     begin
-                        state <= WAIT_ARP_DONE;
-                        arp_resp_start <= 'd0;
+                        if (!arp_resp_end) begin
+                            state <= ARP_RESP;
+                        end else begin
+                            state <= WAIT_ARP_DONE;
+                            arp_resp_start <= 'd0;
+                        end
                     end
             endcase
         end

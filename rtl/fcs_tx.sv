@@ -24,8 +24,6 @@ module fcs_tx
     logic   [1:0]   count;
 
     always_comb begin
-        crc_next = crc_reg;
-
         crc_next = crc_reg ^ {24'd0, data_in};
 
         for (int i = 0; i < 8; i++) begin

@@ -6,7 +6,9 @@ module preamble_sfd_tx
     
     input   logic           preamble_sfd_tx_start,
     output  logic           preamble_sfd_tx_done,
-    output  logic   [7:0]   data_out
+    output  logic   [7:0]   data_out,
+
+    input   logic           tx_frame_done
 );
 
     localparam PREAMBLE = 8'h55;
@@ -18,7 +20,8 @@ module preamble_sfd_tx
     {  
         WAIT_START,
         PREAMBLE_TX,
-        SFD_TX
+        SFD_TX,
+        WAIT_CRC
     } state_type;
 
     state_type state;
@@ -53,9 +56,19 @@ module preamble_sfd_tx
                     end
                 SFD_TX:
                     begin
-                        state <= WAIT_START;
+                        state <= WAIT_CRC;
                         data_out <= SFD;
                         preamble_sfd_tx_done <= 'd1;
+                    end
+                WAIT_CRC:
+                    begin
+                        if (!tx_frame_done) begin
+                            state <= WAIT_CRC;
+                        end else begin
+                            state <= WAIT_START;
+                        end
+
+                        preamble_sfd_tx_done <= 'd0;
                     end
             endcase
         end

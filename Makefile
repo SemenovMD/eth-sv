@@ -1,5 +1,5 @@
 # Variables
-SIM = tb/eth_rx/vsim/vsim.do
+SIM = tb/eth_tx/vsim/vsim.do
 
 # Targets
 all: sim
