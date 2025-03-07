@@ -27,6 +27,25 @@ logic   [15:0]  port_d;
 // DUT instantiation
 eth_tx dut (.*);
 
+task send_frame(int words);
+    @(posedge aclk);
+    s_axis_tdata = $random;
+    s_axis_tvalid = 1;
+    wait(s_axis_tready);
+    
+    repeat (words - 2) begin
+        @(posedge aclk);
+        s_axis_tdata = $random;
+    end
+
+    @(posedge aclk);
+    s_axis_tdata = $random;
+    s_axis_tlast = 1;
+    @(posedge aclk);
+    s_axis_tvalid = 0;
+    s_axis_tlast = 0;
+endtask
+
 // Clock generation
 initial begin
     aclk = 0;
@@ -65,37 +84,10 @@ end
 
 initial begin
     #100;
-    repeat (100) begin
-        @(posedge aclk);
-        s_axis_tdata = $random;
-        s_axis_tvalid = 1;
+
+    repeat(100) begin
+        send_frame(256);
     end
-
-    @(posedge aclk);
-    s_axis_tdata = $random;
-    s_axis_tvalid = 1;
-    s_axis_tlast = 1;
-    @(posedge aclk);
-    s_axis_tvalid = 0;
-    s_axis_tlast = 0;
-
-    #100;
-    repeat (100) begin
-        @(posedge aclk);
-        s_axis_tdata = $random;
-        s_axis_tvalid = 1;
-    end
-
-    @(posedge aclk);
-    s_axis_tdata = $random;
-    s_axis_tvalid = 1;
-    s_axis_tlast = 1;
-    @(posedge aclk);
-    s_axis_tvalid = 0;
-    s_axis_tlast = 0;
-    
 end
 
-
 endmodule
-

@@ -7,6 +7,10 @@ module asyn_fifo_tx
     input   logic           aclk_rd,
     input   logic           aresetn_rd,
 
+    input   logic           udp_header_tx_done,
+    output  logic           eth_header_ip_tx_start,
+    output  logic   [15:0]  udp_len,
+
     output  logic   [31:0]  m_axis_tdata,
     output  logic           m_axis_tvalid,
     output  logic           m_axis_tlast,
@@ -20,168 +24,328 @@ module asyn_fifo_tx
 
     localparam      AXI_DATA_DEPTH  =   256;
 
-    logic   [31:0]  mem [AXI_DATA_DEPTH-1:0];
+    logic   [31:0]  mem_0 [AXI_DATA_DEPTH-1:0];
+    logic   [31:0]  mem_1 [AXI_DATA_DEPTH-1:0];
 
+    logic   [7:0]   index_wr_0;
+    logic   [7:0]   index_wr_1;
     logic   [7:0]   index_rd;
-    logic   [7:0]   index_wr;
 
-    logic           flag_wr;
-    logic           flag_rd;
+    logic           frame_wr_0;
+    logic           frame_wr_1;
 
-    logic           flag_wr_sync_0;
-    logic           flag_wr_sync_1;
-    logic           flag_rd_sync_0;
-    logic           flag_rd_sync_1;
+    logic           frame_wr_0_sync_0;
+    logic           frame_wr_0_sync_1;
+    logic           frame_wr_1_sync_0;
+    logic           frame_wr_1_sync_1;
 
-    // Synchronizer WRITE
-    always @(posedge aclk_wr)
+    logic           frame_rd_0;
+    logic           frame_rd_1;
+
+    logic           frame_rd_0_sync_0;
+    logic           frame_rd_0_sync_1;
+    logic           frame_rd_1_sync_0;
+    logic           frame_rd_1_sync_1;
+
+    logic           flag;
+    
+    logic   [7:0]   udp_len_8;
+
+    // SYNC WRITE
+    always_ff @(posedge aclk_wr)
     begin
         if (!aresetn_wr)
         begin
-            flag_rd_sync_0 <= 'd0;
-            flag_rd_sync_1 <= 'd0;
+            frame_rd_0_sync_0 <= 'd0;
+            frame_rd_0_sync_1 <= 'd0;
+            frame_rd_1_sync_0 <= 'd0;
+            frame_rd_1_sync_1 <= 'd0;
         end else
         begin
-            flag_rd_sync_0 <= flag_rd;
-            flag_rd_sync_1 <= flag_rd_sync_0;
+            frame_rd_0_sync_0 <= frame_rd_0;
+            frame_rd_0_sync_1 <= frame_rd_0_sync_0;
+
+            frame_rd_1_sync_0 <= frame_rd_1;
+            frame_rd_1_sync_1 <= frame_rd_1_sync_0;
         end
     end
 
-    // Synchronizer READ
-    always @(posedge aclk_rd)
+    // SYNC READ
+    always_ff @(posedge aclk_rd)
     begin
         if (!aresetn_rd)
         begin
-            flag_wr_sync_0 <= 'd0;
-            flag_wr_sync_1 <= 'd0;
+            frame_wr_0_sync_0 <= 'd0;
+            frame_wr_0_sync_1 <= 'd0;
+            frame_wr_1_sync_0 <= 'd0;
+            frame_wr_1_sync_1 <= 'd0;
         end else
         begin
-            flag_wr_sync_0 <= flag_wr;
-            flag_wr_sync_1 <= flag_wr_sync_0;
+            frame_wr_0_sync_0 <= frame_wr_0;
+            frame_wr_0_sync_1 <= frame_wr_0_sync_0;
+
+            frame_wr_1_sync_0 <= frame_wr_1;
+            frame_wr_1_sync_1 <= frame_wr_1_sync_0;
         end
     end
 
     // FSM WRITE
-    typedef enum logic [1:0]
-    {  
-        IDLE_WR,
-        DONE_WR,
-        WAIT_RD
+    typedef enum logic [2:0]
+    {
+        WAIT_VALID_WR_0,
+        BURST_WR_0,
+        FRAME_WR_0,
+        CHECK_RD_1,
+        WAIT_VALID_WR_1,
+        BURST_WR_1,
+        FRAME_WR_1,
+        CHECK_RD_0
     } state_type_wr;
 
     state_type_wr state_wr;
 
-    always @(posedge aclk_wr)
+    always_ff @(posedge aclk_wr)
     begin
         if (!aresetn_wr)
         begin
-            state_wr <= IDLE_WR;
+            state_wr <= WAIT_VALID_WR_0;
             s_axis_tready <= 'd0;
-            index_wr <= 'd0;
-            flag_wr <= 'd0;
+            index_wr_0 <= 'd0;
+            index_wr_1 <= 'd0;
+            frame_wr_0 <= 'd0;
+            frame_wr_1 <= 'd0;
+            flag <= 'd0;
         end else
         begin
             case (state_wr)
-                IDLE_WR:
+                WAIT_VALID_WR_0:
                     begin
                         if (!s_axis_tvalid) begin
-                            state_wr <= IDLE_WR;
+                            state_wr <= WAIT_VALID_WR_0;
+                        end else begin
+                            state_wr <= BURST_WR_0;
+                            s_axis_tready <= 'd1;
+                            mem_0[index_wr_0] <= s_axis_tdata;
+                        end
+                    end
+                BURST_WR_0:
+                    begin
+                        if (!s_axis_tvalid) begin
+                            state_wr <= BURST_WR_0;
                         end else begin
                             if (s_axis_tlast) begin
-                                state_wr <= DONE_WR;
-                                flag_wr <= 'd1;
+                                state_wr <= FRAME_WR_0;
+                                s_axis_tready <= 'd0;
+                            end else begin
+                                index_wr_0 <= index_wr_0 + 1;
                             end
 
-                            s_axis_tready <= 'd1;
-                            index_wr <= index_wr + 1;
-                            mem[index_wr] <= s_axis_tdata;
+                            mem_0[index_wr_0] <= s_axis_tdata;
                         end
                     end
-                DONE_WR:
+                FRAME_WR_0:
                     begin
-                        state_wr <= WAIT_RD;
-                        s_axis_tready <= 'd0;
-                    end
-                WAIT_RD:
-                    begin
-                        if (!flag_rd_sync_1) begin
-                            state_wr <= WAIT_RD;
+                        if (!flag) begin
+                            state_wr <= WAIT_VALID_WR_1;
+                            flag <= 'd1;
                         end else begin
-                            state_wr <= IDLE_WR;
-                            index_wr <= 'd0;
+                            state_wr <= CHECK_RD_1;
                         end
 
-                        flag_wr <= 'd0;
+                        frame_wr_0 <= 'd1;
+                        frame_wr_1 <= 'd0;
+                    end
+                CHECK_RD_1:
+                    begin
+                        if (!frame_rd_1_sync_1) begin
+                            state_wr <= CHECK_RD_1;
+                        end else begin
+                            state_wr <= WAIT_VALID_WR_1;
+                            index_wr_1 <= 'd0;
+                        end
+                    end
+                WAIT_VALID_WR_1:
+                    begin
+                        if (!s_axis_tvalid) begin
+                            state_wr <= WAIT_VALID_WR_1;
+                        end else begin
+                            state_wr <= BURST_WR_1;
+                            s_axis_tready <= 'd1;
+                            mem_1[index_wr_1] <= s_axis_tdata;
+                        end
+                    end
+                BURST_WR_1:
+                    begin
+                        if (!s_axis_tvalid) begin
+                            state_wr <= BURST_WR_1;
+                        end else begin
+                            if (s_axis_tlast) begin
+                                state_wr <= FRAME_WR_1;
+                                s_axis_tready <= 'd0;
+                            end else begin
+                                index_wr_1 <= index_wr_1 + 1;
+                                s_axis_tready <= 'd1;
+                            end
+
+                            mem_1[index_wr_1] <= s_axis_tdata;
+                        end
+                    end
+                FRAME_WR_1:
+                    begin
+                        state_wr <= CHECK_RD_0;
+                        frame_wr_0 <= 'd0;
+                        frame_wr_1 <= 'd1;
+                    end
+                CHECK_RD_0:
+                    begin
+                        if (!frame_rd_0_sync_1) begin
+                            state_wr <= CHECK_RD_0;
+                        end else begin
+                            state_wr <= WAIT_VALID_WR_0;
+                            index_wr_0 <= 'd0;
+                        end
                     end
             endcase
         end
     end
 
     // FSM READ
-    typedef enum logic [1:0]
+    typedef enum logic [2:0]
     {  
-        WAIT_WR,
-        BURST_RD,
-        LAST_RD,
-        DONE_RD
+        CHECK_WR_0,
+        WAIT_UDP_HEADER_DONE_0,
+        UDP_DATA_0,
+        UDP_DATA_DONE_0,
+        CHECK_WR_1,
+        WAIT_UDP_HEADER_DONE_1,
+        UDP_DATA_1,
+        UDP_DATA_DONE_1
     } state_type_rd;
 
     state_type_rd state_rd;
 
-    always @(posedge aclk_rd)
+    always_ff @(posedge aclk_rd)
     begin
         if (!aresetn_rd)
         begin
-            state_rd <= WAIT_WR;
+            state_rd <= CHECK_WR_0;
             m_axis_tvalid <= 'd0;
             m_axis_tlast <= 'd0;
             index_rd <= 'd0;
-            flag_rd <= 'd0;
+            frame_rd_0 <= 'd0;
+            frame_rd_1 <= 'd0;
+            eth_header_ip_tx_start <= 'd0;
         end else
         begin
             case (state_rd)
-                WAIT_WR:
+                CHECK_WR_0:
                     begin
-                        if (!flag_wr_sync_1) begin
-                            state_rd <= WAIT_WR; 
+                        if (!frame_wr_0_sync_1) begin
+                            state_rd <= CHECK_WR_0;
                         end else begin
-                            state_rd <= BURST_RD;
-                            index_rd <= index_rd + 1;
-                            m_axis_tdata <= mem[index_rd];
-                            m_axis_tvalid <= 'd1;
+                            state_rd <= WAIT_UDP_HEADER_DONE_0;
+                            eth_header_ip_tx_start <= 'd1;
                         end
                     end
-                BURST_RD:
+                WAIT_UDP_HEADER_DONE_0:
                     begin
-                        if (!m_axis_tready)
-                        begin
-                            state_rd <= BURST_RD;
-                        end else
-                        begin
-                            if (index_rd == index_wr) begin
-                                state_rd <= LAST_RD;
+                        if (!udp_header_tx_done) begin
+                            state_rd <= WAIT_UDP_HEADER_DONE_0;
+                        end else begin
+                            state_rd <= UDP_DATA_0;
+                            eth_header_ip_tx_start <= 'd0;
+                            m_axis_tdata <= mem_0[index_rd];
+                            m_axis_tvalid <= 'd1;
+                            index_rd <= index_rd + 1;
+                        end
+                    end
+                UDP_DATA_0:
+                    begin
+                        if (!m_axis_tready) begin
+                            state_rd <= UDP_DATA_0;
+                        end else begin
+                            if (index_rd == index_wr_0) begin
+                                state_rd <= UDP_DATA_DONE_0;
                                 m_axis_tlast <= 'd1;
-                                flag_rd <= 'd1;
                             end
 
                             index_rd <= index_rd + 1;
-                            m_axis_tdata <= mem[index_rd];
+                            m_axis_tdata <= mem_0[index_rd];
                         end
                     end
-                LAST_RD:
+                UDP_DATA_DONE_0:
                     begin
-                        state_rd <= DONE_RD;
-                        m_axis_tvalid <= 'd0;
-                        m_axis_tlast <= 'd0;
-                        index_rd <= 'd0;
+                        if (!m_axis_tready) begin
+                            state_rd <= UDP_DATA_DONE_0;
+                        end else begin
+                            state_rd <= CHECK_WR_1;
+                            m_axis_tvalid <= 'd0;
+                            m_axis_tlast <= 'd0;
+                            index_rd <= 'd0;
+                            frame_rd_0 <= 'd1;
+                            frame_rd_1 <= 'd0;
+                        end
                     end
-                DONE_RD:
+                CHECK_WR_1:
                     begin
-                        state_rd <= WAIT_WR;
-                        flag_rd <= 'd0;
+                        if (!frame_wr_1_sync_1) begin
+                            state_rd <= CHECK_WR_1;
+                        end else begin
+                            state_rd <= WAIT_UDP_HEADER_DONE_1;
+                            eth_header_ip_tx_start <= 'd1;
+                        end
+                    end
+                WAIT_UDP_HEADER_DONE_1:
+                    begin
+                        if (!udp_header_tx_done) begin
+                            state_rd <= WAIT_UDP_HEADER_DONE_1;
+                        end else begin
+                            state_rd <= UDP_DATA_1;
+                            eth_header_ip_tx_start <= 'd0;
+                            m_axis_tdata <= mem_1[index_rd];
+                            m_axis_tvalid <= 'd1;
+                            index_rd <= index_rd + 1;
+                        end
+                    end
+                UDP_DATA_1:
+                    begin
+                        if (!m_axis_tready) begin
+                            state_rd <= UDP_DATA_1;
+                        end else begin
+                            if (index_rd == index_wr_1) begin
+                                state_rd <= UDP_DATA_DONE_1;
+                                m_axis_tlast <= 'd1;
+                            end
+
+                            index_rd <= index_rd + 1;
+                            m_axis_tdata <= mem_1[index_rd];
+                        end
+                    end
+                UDP_DATA_DONE_1:
+                    begin
+                        if (!m_axis_tready) begin
+                            state_rd <= UDP_DATA_DONE_1;
+                        end else begin
+                            state_rd <= CHECK_WR_0;
+                            m_axis_tvalid <= 'd0;
+                            m_axis_tlast <= 'd0;
+                            index_rd <= 'd0;
+                            frame_rd_0 <= 'd0;
+                            frame_rd_1 <= 'd1;
+                        end
                     end
             endcase
         end
+    end
+
+    // UDP Length
+    assign udp_len = (udp_len_8 + 1) * 4;
+
+    always_comb begin
+        case (state_rd)
+            CHECK_WR_0, WAIT_UDP_HEADER_DONE_0, UDP_DATA_0, UDP_DATA_DONE_0: udp_len_8 = index_wr_0;
+            CHECK_WR_1, WAIT_UDP_HEADER_DONE_1, UDP_DATA_1, UDP_DATA_DONE_1: udp_len_8 = index_wr_1;
+        endcase
     end
 
 endmodule

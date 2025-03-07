@@ -62,10 +62,10 @@ module eth_tx
     logic           m_axis_tlast;
     logic           m_axis_tready;
 
-    logic   [31:0]  s_axis_tdata_wire;
-    logic           s_axis_tvalid_wire;
-    logic           s_axis_tlast_wire;
-    logic           s_axis_tready_wire;
+    // logic   [31:0]  s_axis_tdata_wire;
+    // logic           s_axis_tvalid_wire;
+    // logic           s_axis_tlast_wire;
+    // logic           s_axis_tready_wire;
 
     assign tx_frame_start = eth_header_ip_tx_start || eth_header_arp_tx_start;
 
@@ -138,22 +138,22 @@ module eth_tx
         .udp_data_tx_done(udp_data_tx_done)
     );
 
-    fifo_tx fifo_tx_inst
-    (
-        .aclk(gmii_tx_clk),
-        .aresetn(gmii_tx_rstn),
-        .udp_header_tx_done(udp_header_tx_done_0),
-        .eth_header_ip_tx_start(eth_header_ip_tx_start),
-        .udp_len(udp_len),
-        .s_axis_tdata(s_axis_tdata_wire),
-        .s_axis_tvalid(s_axis_tvalid_wire),
-        .s_axis_tlast(s_axis_tlast_wire),
-        .s_axis_tready(s_axis_tready_wire),
-        .m_axis_tdata(m_axis_tdata),
-        .m_axis_tvalid(m_axis_tvalid),
-        .m_axis_tlast(m_axis_tlast),
-        .m_axis_tready(m_axis_tready)
-    );
+    // fifo_tx fifo_tx_inst
+    // (
+    //     .aclk(gmii_tx_clk),
+    //     .aresetn(gmii_tx_rstn),
+    //     .udp_header_tx_done(udp_header_tx_done_0),
+    //     .eth_header_ip_tx_start(eth_header_ip_tx_start),
+    //     .udp_len(udp_len),
+    //     .s_axis_tdata(s_axis_tdata_wire),
+    //     .s_axis_tvalid(s_axis_tvalid_wire),
+    //     .s_axis_tlast(s_axis_tlast_wire),
+    //     .s_axis_tready(s_axis_tready_wire),
+    //     .m_axis_tdata(m_axis_tdata),
+    //     .m_axis_tvalid(m_axis_tvalid),
+    //     .m_axis_tlast(m_axis_tlast),
+    //     .m_axis_tready(m_axis_tready)
+    // );
 
     asyn_fifo_tx asyn_fifo_tx_inst
     (
@@ -161,10 +161,13 @@ module eth_tx
         .aresetn_wr(aresetn),
         .aclk_rd(gmii_tx_clk),
         .aresetn_rd(gmii_tx_rstn),
-        .m_axis_tdata(s_axis_tdata_wire),
-        .m_axis_tvalid(s_axis_tvalid_wire),
-        .m_axis_tlast(s_axis_tlast_wire),
-        .m_axis_tready(s_axis_tready_wire),
+        .udp_header_tx_done(udp_header_tx_done_0),
+        .eth_header_ip_tx_start(eth_header_ip_tx_start),
+        .udp_len(udp_len),
+        .m_axis_tdata(m_axis_tdata),
+        .m_axis_tvalid(m_axis_tvalid),
+        .m_axis_tlast(m_axis_tlast),
+        .m_axis_tready(m_axis_tready),
         .s_axis_tdata(s_axis_tdata),
         .s_axis_tvalid(s_axis_tvalid),
         .s_axis_tlast(s_axis_tlast),

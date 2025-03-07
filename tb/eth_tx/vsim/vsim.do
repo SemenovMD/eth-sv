@@ -38,6 +38,15 @@ add wave -radix hexadecimal     tb_eth_tx/s_axis_tvalid
 add wave -radix hexadecimal     tb_eth_tx/s_axis_tlast
 add wave -radix hexadecimal     tb_eth_tx/s_axis_tready
 
+add wave -radix hexadecimal     tb_eth_tx/dut/udp_header_tx_done_0
+add wave -radix hexadecimal     tb_eth_tx/dut/eth_header_ip_tx_start
+
+add wave -radix unsigned        tb_eth_tx/dut/asyn_fifo_tx_inst/index_wr_0
+add wave -radix unsigned        tb_eth_tx/dut/asyn_fifo_tx_inst/index_wr_1
+add wave -radix unsigned        tb_eth_tx/dut/asyn_fifo_tx_inst/index_rd
+
+add wave -radix hexadecimal     tb_eth_tx/dut/mux_tx_inst/state
+
 # Run the simulation for the specified time
 run 1ms
 
