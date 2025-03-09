@@ -7,7 +7,8 @@ module arp_data_rx
     input   logic   [7:0]   data_in,
     input   logic           data_valid,
 
-    // Request
+    output  logic           arp_oper,
+
     output  logic   [47:0]  mac_s_addr,
     input   logic   [31:0]  ip_s_addr,
     input   logic   [47:0]  mac_d_addr,
@@ -60,6 +61,7 @@ module arp_data_rx
             state_arp <= WAIT;
             count <= 'd0;
             arp_data_valid <= 'd0;
+            oper_flag <= 'd0;
         end else begin
             case (state_arp)
                 WAIT:
@@ -72,6 +74,7 @@ module arp_data_rx
                         end
 
                         arp_data_valid <= 'd0;
+                        oper_flag <= 'd0;
                     end
                 HTYPE_CHECK:
                     begin
@@ -128,12 +131,14 @@ module arp_data_rx
                                 OPER_RQ:
                                     begin
                                         state_arp <= MAC_SOURCE;
-                                        oper_flag <= 'd0;
+                                        oper_flag <= 'd1;
+                                        arp_oper <= 'd0;
                                     end
                                 OPER_RESP:
                                     begin
                                         state_arp <= MAC_SOURCE;
                                         oper_flag <= 'd1;
+                                        arp_oper <= 'd1;
                                     end
                                 default:
                                     begin
@@ -156,7 +161,7 @@ module arp_data_rx
                             count <= 'd0;
                         end
 
-                        if (!oper_flag) begin
+                        if (oper_flag) begin
                             mac_s_addr[47 - count*8 -: 8] <= data_in;
                         end
                     end
@@ -169,7 +174,7 @@ module arp_data_rx
                             count <= 'd0;
                         end
 
-                        if (!oper_flag) begin
+                        if (oper_flag) begin
                             ip_s_addr_buf[31 - count*8 -: 8] <= data_in;
                         end
                     end
@@ -182,7 +187,7 @@ module arp_data_rx
                             count <= 'd0;
                         end
 
-                        if (!oper_flag) begin
+                        if (oper_flag) begin
                             mac_d_addr_buf[47 - count*8 -: 8] <= data_in;
                         end
                     end
@@ -199,7 +204,7 @@ module arp_data_rx
                             end
                         end
 
-                        if (!oper_flag) begin
+                        if (oper_flag) begin
                             ip_d_addr_buf[31 - count*8 -: 8] <= data_in;
                         end
                     end

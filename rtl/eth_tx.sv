@@ -90,6 +90,7 @@ module eth_tx
         .mac_d_addr(mac_d_addr),
         .mac_s_addr(mac_s_addr),
         .preamble_sfd_tx_done(preamble_sfd_tx_done),
+        .arp_oper(arp_oper),
         .eth_header_arp_tx_start(eth_header_arp_tx_start),
         .eth_header_ip_tx_start(eth_header_ip_tx_start),
         .data_out(eth_header_tx_data),
@@ -202,6 +203,5 @@ module eth_tx
         .fcs_tx_data(fcs_tx_data),
         .tx_frame_done(tx_frame_done)
     );
-
 
 endmodule

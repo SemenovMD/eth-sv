@@ -46,7 +46,11 @@ module eth_udp_arp
 
     logic           arp_data_valid;
     logic           arp_data_tx_done;
-    logic           eth_header_arp_tx_start;
+    logic           arp_tx_start;
+    logic           arp_oper_rx;
+    logic           arp_oper_tx;
+    logic           arp_resp_start;
+    logic           arp_rq_start;
 
     logic           crc_valid;
 
@@ -66,6 +70,7 @@ module eth_udp_arp
         .port_s(PORT_SOURCE),
         .port_d(PORT_DESTINATION),
         .rq_mac_s_addr(rq_mac_s_addr),
+        .arp_oper(arp_oper_rx),
         .arp_data_valid(arp_data_valid),
         .crc_valid(crc_valid),
         .m_axis_tdata(m_axis_tdata),
@@ -87,8 +92,8 @@ module eth_udp_arp
         .s_axis_tvalid(s_axis_tvalid),
         .s_axis_tlast(s_axis_tlast),
         .s_axis_tready(s_axis_tready),
-        .eth_header_arp_tx_start(eth_header_arp_tx_start),
-        .arp_oper(1'd0),
+        .eth_header_arp_tx_start(arp_tx_start),
+        .arp_oper(arp_oper_tx),
         .arp_data_tx_done(arp_data_tx_done),
         .mac_d_addr(mac_s_addr),
         .ip_d_addr(IP_SOURCE),
@@ -104,13 +109,26 @@ module eth_udp_arp
         .aresetn(gmii_rstn),
         .mac_d_addr(MAC_DESTINATION),
         .ip_d_addr(IP_DESTINATION),
-        .rq_mac_s_addr(rq_mac_s_addr),
-        .resp_mac_s_addr(mac_s_addr),
+        .mac_s_addr_in(rq_mac_s_addr),
+        .mac_s_addr_out(mac_s_addr),
         .ip_s_addr(IP_SOURCE),
+        .arp_oper(arp_oper_rx),
         .arp_data_done(arp_data_valid),
         .crc_valid(crc_valid),
-        .arp_resp_start(eth_header_arp_tx_start),
-        .arp_resp_end(arp_data_tx_done)
+        .arp_resp_start(arp_resp_start),
+        .arp_resp_end(arp_data_tx_done),
+        .arp_rq_start(arp_rq_start)
+    );
+
+    arb_arp_oper arb_arp_oper_inst
+    (
+        .aclk(gmii_rx_clk),
+        .aresetn(gmii_rstn),
+        .arp_resp_start(arp_resp_start),
+        .arp_rq_start(arp_rq_start),
+        .arp_data_tx_done(arp_data_tx_done),
+        .arp_oper(arp_oper_tx),
+        .arp_tx_start(arp_tx_start)
     );
 
 endmodule

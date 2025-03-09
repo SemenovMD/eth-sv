@@ -17,6 +17,7 @@ module eth_rx
     input   logic   [15:0]  port_d,
 
     output  logic   [47:0]  rq_mac_s_addr,
+    output  logic           arp_oper,
     output  logic           arp_data_valid,
     output  logic           crc_valid,
     output  logic           crc_error,
@@ -86,6 +87,7 @@ module eth_rx
         .aresetn(gmii_rstn),
         .data_in(data_out),
         .data_valid(data_valid),
+        .arp_oper(arp_oper),
         .mac_s_addr(rq_mac_s_addr),
         .ip_s_addr(ip_s_addr),
         .mac_d_addr(mac_d_addr),

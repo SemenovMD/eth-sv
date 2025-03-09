@@ -8,6 +8,7 @@ module eth_header_tx
     input   logic   [47:0]  mac_s_addr,
 
     input   logic           preamble_sfd_tx_done,
+    input   logic           arp_oper,
     input   logic           eth_header_arp_tx_start,
     input   logic           eth_header_ip_tx_start,
 
@@ -18,6 +19,8 @@ module eth_header_tx
 
     localparam  ETH_ARP_TYPE    =   16'h08_06;
     localparam  ETH_IP_TYPE     =   16'h08_00;
+
+    localparam  MAC_W           =    8'hFF;
 
     logic   [2:0]   count;
 
@@ -45,7 +48,13 @@ module eth_header_tx
                             state <= WAIT_START;
                         end else begin
                             state <= MAC_DESTINATION_TX;
-                            data_out <= mac_d_addr[47 - count*8 -: 8];
+
+                            if (!arp_oper) begin
+                                data_out <= mac_d_addr[47 - count*8 -: 8];
+                            end else begin
+                                data_out <= MAC_W;
+                            end
+
                             count <= count + 1;
                         end
 
@@ -61,7 +70,11 @@ module eth_header_tx
                             count <= 'd0;
                         end
 
-                        data_out <= mac_d_addr[47 - count*8 -: 8];
+                        if (!arp_oper) begin
+                            data_out <= mac_d_addr[47 - count*8 -: 8];
+                        end else begin
+                            data_out <= MAC_W;
+                        end
                     end
                 MAC_SOURCE_TX:
                     begin
