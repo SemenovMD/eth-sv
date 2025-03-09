@@ -19,6 +19,8 @@ logic [47:0] mac_d_addr = 48'hAABBCCDDEEFF;
 logic [31:0] ip_d_addr = 32'hC0A80101;
 logic [47:0] mac_s_addr = 48'h112233445566;
 logic [31:0] ip_s_addr = 32'hC0A80102;
+logic [15:0] port_s = 16'h0000;
+logic [15:0] port_d = 16'h138D;
 
 // Outputs
 logic [47:0] rq_mac_s_addr;
@@ -29,10 +31,10 @@ logic crc_error;
 // AXI Interfaces
 logic aclk;
 logic aresetn;
-logic [31:0] m_axis_tdata_asyn_fifo;
-logic m_axis_tvalid_asyn_fifo;
-logic m_axis_tlast_asyn_fifo;
-logic m_axis_tready_asyn_fifo = 1;
+logic [31:0] m_axis_tdata;
+logic m_axis_tvalid;
+logic m_axis_tlast;
+logic m_axis_tready;
 
 byte crc_buffer[$];
 logic calc_crc_enable = 0;
@@ -125,7 +127,7 @@ task initialize();
     gmii_rxd = 0;
     gmii_rx_dv = 0;
     gmii_rx_er = 0;
-    m_axis_tready_asyn_fifo = 1;
+    m_axis_tready = 1;
 endtask
 
 task reset();

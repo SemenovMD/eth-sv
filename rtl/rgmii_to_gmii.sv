@@ -21,8 +21,8 @@ module rgmii_to_gmii
     output  logic           gmii_rx_er,
     output  logic           gmii_rx_clk,
 
-    output  logic           gmii_crs,
-    output  logic           gmii_col,
+    // output  logic           gmii_crs,
+    // output  logic           gmii_col,
 
     input   logic   [1:0]   speed_selection,
     input   logic           duplex_mode
@@ -66,8 +66,8 @@ module rgmii_to_gmii
     always_ff @(posedge gmii_tx_clk_s) begin
         rgmii_tx_ctl_r = gmii_tx_en_r ^ gmii_tx_er_r;
         gmii_txd_low   = gigabit ? gmii_txd_r[7:4] : gmii_txd_r[3:0];
-        gmii_col       = duplex_mode ? 1'b0 : (gmii_tx_en_r | gmii_tx_er_r) & (gmii_rx_dv | gmii_rx_er);
-        gmii_crs       = duplex_mode ? 1'b0 : (gmii_tx_en_r | gmii_tx_er_r | gmii_rx_dv | gmii_rx_er);
+        // gmii_col       = duplex_mode ? 1'b0 : (gmii_tx_en_r | gmii_tx_er_r) & (gmii_rx_dv | gmii_rx_er);
+        // gmii_crs       = duplex_mode ? 1'b0 : (gmii_tx_en_r | gmii_tx_er_r | gmii_rx_dv | gmii_rx_er);
     end
 
     always_ff @(posedge gmii_tx_clk_s) begin
@@ -89,10 +89,7 @@ module rgmii_to_gmii
     // RX
     //////////////////////////////////////////////////////////////////////////////
 
-    BUFG bufmr_rgmii_rxc (
-        .I(~rgmii_rxc),
-        .O(gmii_rx_clk)
-    );
+    assign gmii_rx_clk = rgmii_rxc;
 
     generate
         for (genvar i = 0; i < 4; i++) begin : gen_rx_data

@@ -13,6 +13,9 @@ module eth_rx
     input   logic   [47:0]  mac_s_addr,
     input   logic   [31:0]  ip_s_addr,
 
+    input   logic   [15:0]  port_s,
+    input   logic   [15:0]  port_d,
+
     output  logic   [47:0]  rq_mac_s_addr,
     output  logic           arp_data_valid,
     output  logic           crc_valid,
@@ -21,10 +24,10 @@ module eth_rx
     input   logic           aclk,
     input   logic           aresetn,
 
-    output  logic   [31:0]  m_axis_tdata_asyn_fifo,
-    output  logic           m_axis_tvalid_asyn_fifo,
-    output  logic           m_axis_tlast_asyn_fifo,
-    input   logic           m_axis_tready_asyn_fifo
+    output  logic   [31:0]  m_axis_tdata,
+    output  logic           m_axis_tvalid,
+    output  logic           m_axis_tlast,
+    input   logic           m_axis_tready
 );
 
     logic   [7:0]   data_out;
@@ -40,21 +43,11 @@ module eth_rx
 
     logic           udp_data_valid;
     logic           udp_data_tlast;
-    
-    logic   [15:0]  port_s;
-    logic   [15:0]  port_d;
-
-    assign port_d = 16'h13_8D;
 
     logic   [31:0]  s_axis_tdata;
     logic           s_axis_tvalid;
     logic           s_axis_tlast;
     logic           s_axis_tready;
-
-    logic   [31:0]  m_axis_tdata;
-    logic           m_axis_tvalid;
-    logic           m_axis_tlast;
-    logic           m_axis_tready;
 
     gmii_rx_to_valid gmii_rx_to_valid_inst
     (
@@ -139,36 +132,20 @@ module eth_rx
         .m_axis_tready(s_axis_tready)
     );
 
-    fifo_rx fifo_rx_inst
-    (
-        .aclk(gmii_rx_clk),
-        .aresetn(gmii_rstn),
-        .data_valid(data_valid),
-        .crc_valid(crc_valid),
-        .s_axis_tdata(s_axis_tdata),
-        .s_axis_tvalid(s_axis_tvalid),
-        .s_axis_tlast(s_axis_tlast),
-        .s_axis_tready(s_axis_tready),
-        .m_axis_tdata(m_axis_tdata),
-        .m_axis_tvalid(m_axis_tvalid),
-        .m_axis_tlast(m_axis_tlast),
-        .m_axis_tready(m_axis_tready)
-    );
-
     asyn_fifo_rx asyn_fifo_rx_inst
     (
         .aclk_wr(gmii_rx_clk),
         .aresetn_wr(gmii_rstn),
         .aclk_rd(aclk),
         .aresetn_rd(aresetn),
-        .m_axis_tdata(m_axis_tdata_asyn_fifo),
-        .m_axis_tvalid(m_axis_tvalid_asyn_fifo),
-        .m_axis_tlast(m_axis_tlast_asyn_fifo),
-        .m_axis_tready(m_axis_tready_asyn_fifo),
-        .s_axis_tdata(m_axis_tdata),
-        .s_axis_tvalid(m_axis_tvalid),
-        .s_axis_tlast(m_axis_tlast),
-        .s_axis_tready(m_axis_tready)
+        .m_axis_tdata(m_axis_tdata),
+        .m_axis_tvalid(m_axis_tvalid),
+        .m_axis_tlast(m_axis_tlast),
+        .m_axis_tready(m_axis_tready),
+        .s_axis_tdata(s_axis_tdata),
+        .s_axis_tvalid(s_axis_tvalid),
+        .s_axis_tlast(s_axis_tlast),
+        .s_axis_tready(s_axis_tready)
     );
 
     fcs_rx fcs_rx_inst

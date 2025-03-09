@@ -58,13 +58,21 @@ module asyn_fifo_tx
         begin
             frame_rd_0_sync_0 <= 'd0;
             frame_rd_0_sync_1 <= 'd0;
-            frame_rd_1_sync_0 <= 'd0;
-            frame_rd_1_sync_1 <= 'd0;
         end else
         begin
             frame_rd_0_sync_0 <= frame_rd_0;
             frame_rd_0_sync_1 <= frame_rd_0_sync_0;
+        end
+    end
 
+    always_ff @(posedge aclk_wr)
+    begin
+        if (!aresetn_wr)
+        begin
+            frame_rd_1_sync_0 <= 'd0;
+            frame_rd_1_sync_1 <= 'd0;
+        end else
+        begin
             frame_rd_1_sync_0 <= frame_rd_1;
             frame_rd_1_sync_1 <= frame_rd_1_sync_0;
         end
@@ -77,13 +85,21 @@ module asyn_fifo_tx
         begin
             frame_wr_0_sync_0 <= 'd0;
             frame_wr_0_sync_1 <= 'd0;
-            frame_wr_1_sync_0 <= 'd0;
-            frame_wr_1_sync_1 <= 'd0;
         end else
         begin
             frame_wr_0_sync_0 <= frame_wr_0;
             frame_wr_0_sync_1 <= frame_wr_0_sync_0;
+        end
+    end
 
+    always_ff @(posedge aclk_rd)
+    begin
+        if (!aresetn_rd)
+        begin
+            frame_wr_1_sync_0 <= 'd0;
+            frame_wr_1_sync_1 <= 'd0;
+        end else
+        begin
             frame_wr_1_sync_0 <= frame_wr_1;
             frame_wr_1_sync_1 <= frame_wr_1_sync_0;
         end

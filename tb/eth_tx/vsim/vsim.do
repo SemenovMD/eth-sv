@@ -12,7 +12,6 @@ vlog -sv    rtl/arp_data_tx.sv
 vlog -sv    rtl/ip_header_tx.sv
 vlog -sv    rtl/udp_header_tx.sv
 vlog -sv    rtl/conv_32_8.sv
-vlog -sv    rtl/fifo_tx.sv
 vlog -sv    rtl/asyn_fifo_tx.sv
 vlog -sv    rtl/fcs_tx.sv
 vlog -sv    rtl/mux_tx.sv
@@ -37,13 +36,6 @@ add wave -radix hexadecimal     tb_eth_tx/s_axis_tdata
 add wave -radix hexadecimal     tb_eth_tx/s_axis_tvalid
 add wave -radix hexadecimal     tb_eth_tx/s_axis_tlast
 add wave -radix hexadecimal     tb_eth_tx/s_axis_tready
-
-add wave -radix hexadecimal     tb_eth_tx/dut/udp_header_tx_done_0
-add wave -radix hexadecimal     tb_eth_tx/dut/eth_header_ip_tx_start
-
-add wave -radix unsigned        tb_eth_tx/dut/asyn_fifo_tx_inst/index_wr_0
-add wave -radix unsigned        tb_eth_tx/dut/asyn_fifo_tx_inst/index_wr_1
-add wave -radix unsigned        tb_eth_tx/dut/asyn_fifo_tx_inst/index_rd
 
 add wave -radix hexadecimal     tb_eth_tx/dut/mux_tx_inst/state
 

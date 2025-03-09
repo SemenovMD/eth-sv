@@ -88,6 +88,11 @@ initial begin
     repeat(100) begin
         send_frame(256);
     end
+
+    #10000;
+    repeat(100) begin
+        send_frame(256);
+    end
 end
 
 endmodule

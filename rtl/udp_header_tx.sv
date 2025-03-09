@@ -18,7 +18,7 @@ module udp_header_tx
     logic   [15:0]  udp_len_sum;
     logic           count;
 
-    assign udp_len_sum = udp_len;
+    assign udp_len_sum = udp_len + 'd8;
 
     typedef enum logic [2:0]
     {  

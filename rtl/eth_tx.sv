@@ -62,11 +62,6 @@ module eth_tx
     logic           m_axis_tlast;
     logic           m_axis_tready;
 
-    // logic   [31:0]  s_axis_tdata_wire;
-    // logic           s_axis_tvalid_wire;
-    // logic           s_axis_tlast_wire;
-    // logic           s_axis_tready_wire;
-
     assign tx_frame_start = eth_header_ip_tx_start || eth_header_arp_tx_start;
 
     gmii_tx_to_valid gmii_tx_to_valid_inst
@@ -137,23 +132,6 @@ module eth_tx
         .data_out(udp_data_tx_data),
         .udp_data_tx_done(udp_data_tx_done)
     );
-
-    // fifo_tx fifo_tx_inst
-    // (
-    //     .aclk(gmii_tx_clk),
-    //     .aresetn(gmii_tx_rstn),
-    //     .udp_header_tx_done(udp_header_tx_done_0),
-    //     .eth_header_ip_tx_start(eth_header_ip_tx_start),
-    //     .udp_len(udp_len),
-    //     .s_axis_tdata(s_axis_tdata_wire),
-    //     .s_axis_tvalid(s_axis_tvalid_wire),
-    //     .s_axis_tlast(s_axis_tlast_wire),
-    //     .s_axis_tready(s_axis_tready_wire),
-    //     .m_axis_tdata(m_axis_tdata),
-    //     .m_axis_tvalid(m_axis_tvalid),
-    //     .m_axis_tlast(m_axis_tlast),
-    //     .m_axis_tready(m_axis_tready)
-    // );
 
     asyn_fifo_tx asyn_fifo_tx_inst
     (
