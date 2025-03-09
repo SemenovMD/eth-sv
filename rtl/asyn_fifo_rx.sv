@@ -7,6 +7,9 @@ module asyn_fifo_rx
     input   logic           aclk_rd,
     input   logic           aresetn_rd,
 
+    input   logic           data_valid,
+    input   logic           crc_valid,
+
     output  logic   [31:0]  m_axis_tdata,
     output  logic           m_axis_tvalid,
     output  logic           m_axis_tlast,
@@ -44,6 +47,8 @@ module asyn_fifo_rx
     logic           frame_rd_1_sync_1;
 
     logic           flag;
+
+    logic   [3:0]   count;
 
     // SYNC WRITE
     always_ff @(posedge aclk_wr)
@@ -125,45 +130,68 @@ module asyn_fifo_rx
             frame_wr_0 <= 'd0;
             frame_wr_1 <= 'd0;
             flag <= 'd0;
+            count <= 'd0;
         end else
         begin
             case (state_wr)
                 WAIT_VALID_WR_0:
                     begin
-                        if (!s_axis_tvalid) begin
+                        if (!data_valid) begin
                             state_wr <= WAIT_VALID_WR_0;
                         end else begin
-                            state_wr <= BURST_WR_0;
-                            s_axis_tready <= 'd1;
-                            mem_0[index_wr_0] <= s_axis_tdata;
+                            if (!s_axis_tvalid) begin
+                                state_wr <= WAIT_VALID_WR_0;
+                            end else begin
+                                state_wr <= BURST_WR_0;
+                                s_axis_tready <= 'd1;
+                                mem_0[index_wr_0] <= s_axis_tdata;
+                            end
                         end
                     end
                 BURST_WR_0:
                     begin
-                        if (!s_axis_tvalid) begin
-                            state_wr <= BURST_WR_0;
+                        if (!data_valid) begin
+                            state_wr <= WAIT_VALID_WR_0;
+                            index_wr_0 <= 'd0;
+                            s_axis_tready <= 'd0;
                         end else begin
-                            if (s_axis_tlast) begin
-                                state_wr <= FRAME_WR_0;
-                                s_axis_tready <= 'd0;
+                            if (!s_axis_tvalid) begin
+                                state_wr <= BURST_WR_0;
                             end else begin
-                                index_wr_0 <= index_wr_0 + 1;
-                            end
+                                if (s_axis_tlast) begin
+                                    state_wr <= FRAME_WR_0;
+                                    s_axis_tready <= 'd0;
+                                end else begin
+                                    index_wr_0 <= index_wr_0 + 1;
+                                end
 
-                            mem_0[index_wr_0] <= s_axis_tdata;
+                                mem_0[index_wr_0] <= s_axis_tdata;
+                            end
                         end
                     end
                 FRAME_WR_0:
                     begin
-                        if (!flag) begin
-                            state_wr <= WAIT_VALID_WR_1;
-                            flag <= 'd1;
-                        end else begin
-                            state_wr <= CHECK_RD_1;
-                        end
+                        if (~&count) begin
+                            if (!crc_valid) begin
+                                state_wr <= FRAME_WR_0;
+                                count <= count + 1;
+                            end else begin
+                                if (!flag) begin
+                                    state_wr <= WAIT_VALID_WR_1;
+                                    flag <= 'd1;
+                                end else begin
+                                    state_wr <= CHECK_RD_1;
+                                end
 
-                        frame_wr_0 <= 'd1;
-                        frame_wr_1 <= 'd0;
+                                count <= 'd0;
+                                frame_wr_0 <= 'd1;
+                                frame_wr_1 <= 'd0;
+                            end
+                        end else begin
+                            state_wr <= WAIT_VALID_WR_0;
+                            count <= 'd0;
+                            index_wr_0 <= 'd0;
+                        end
                     end
                 CHECK_RD_1:
                     begin
@@ -176,35 +204,57 @@ module asyn_fifo_rx
                     end
                 WAIT_VALID_WR_1:
                     begin
-                        if (!s_axis_tvalid) begin
+                        if (!data_valid) begin
                             state_wr <= WAIT_VALID_WR_1;
                         end else begin
-                            state_wr <= BURST_WR_1;
-                            s_axis_tready <= 'd1;
-                            mem_1[index_wr_1] <= s_axis_tdata;
+                            if (!s_axis_tvalid) begin
+                                state_wr <= WAIT_VALID_WR_1;
+                            end else begin
+                                state_wr <= BURST_WR_1;
+                                s_axis_tready <= 'd1;
+                                mem_1[index_wr_1] <= s_axis_tdata;
+                            end
                         end
                     end
                 BURST_WR_1:
                     begin
-                        if (!s_axis_tvalid) begin
-                            state_wr <= BURST_WR_1;
+                        if (!data_valid) begin
+                            state_wr <= WAIT_VALID_WR_1;
+                            s_axis_tready <= 'd0;
+                            index_wr_1 <= 'd0;
                         end else begin
-                            if (s_axis_tlast) begin
-                                state_wr <= FRAME_WR_1;
-                                s_axis_tready <= 'd0;
+                            if (!s_axis_tvalid) begin
+                                state_wr <= BURST_WR_1;
                             end else begin
-                                index_wr_1 <= index_wr_1 + 1;
-                                s_axis_tready <= 'd1;
-                            end
+                                if (s_axis_tlast) begin
+                                    state_wr <= FRAME_WR_1;
+                                    s_axis_tready <= 'd0;
+                                end else begin
+                                    index_wr_1 <= index_wr_1 + 1;
+                                    s_axis_tready <= 'd1;
+                                end
 
-                            mem_1[index_wr_1] <= s_axis_tdata;
+                                mem_1[index_wr_1] <= s_axis_tdata;
+                            end
                         end
                     end
                 FRAME_WR_1:
                     begin
-                        state_wr <= CHECK_RD_0;
-                        frame_wr_0 <= 'd0;
-                        frame_wr_1 <= 'd1;
+                        if (~&count) begin
+                            if (!crc_valid) begin
+                                state_wr <= FRAME_WR_1;
+                                count <= count + 1;
+                            end else begin
+                                state_wr <= CHECK_RD_0;
+                                count <= 'd0;
+                                frame_wr_0 <= 'd0;
+                                frame_wr_1 <= 'd1;
+                            end
+                        end else begin
+                            state_wr <= WAIT_VALID_WR_1;
+                            count <= 'd0;
+                            index_wr_1 <= 'd0;
+                        end
                     end
                 CHECK_RD_0:
                     begin

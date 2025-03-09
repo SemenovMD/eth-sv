@@ -5,6 +5,7 @@ module  conv_8_32
     input   logic           aresetn,
 
     input   logic   [7:0]   data_in,
+    input   logic           data_valid,
     input   logic           udp_data_valid,
     input   logic           udp_data_tlast,
 
@@ -42,6 +43,9 @@ module  conv_8_32
                     begin
                         if (!udp_data_valid) begin
                             state_wr <= IDLE_WR;
+                            flag <= 'd0;
+                            flag_last <= 'd0;
+                            count <= 'd0;
                         end else begin
                             state_wr <= DATA_WR;
                             count <= count + 1;
@@ -98,23 +102,33 @@ module  conv_8_32
             case (state_rd)
                 IDLE_RD: 
                     begin
-                        if (!(flag || flag_last)) begin
+                        if (!data_valid) begin
                             state_rd <= IDLE_RD;
                         end else begin
-                            state_rd <= HAND_RD;
-                            m_axis_tdata <= data_buf;
-                            m_axis_tvalid <= 'd1;
-                            m_axis_tlast <= flag_last;
+                            if (!(flag || flag_last)) begin
+                                state_rd <= IDLE_RD;
+                            end else begin
+                                state_rd <= HAND_RD;
+                                m_axis_tdata <= data_buf;
+                                m_axis_tvalid <= 'd1;
+                                m_axis_tlast <= flag_last;
+                            end
                         end
                     end
                 HAND_RD: 
                     begin
-                        if (!m_axis_tready) begin
-                            state_rd <= HAND_RD;
-                        end else begin
+                        if (!data_valid) begin
                             state_rd <= IDLE_RD;
                             m_axis_tvalid <= 'd0;
                             m_axis_tlast <= 'd0;
+                        end else begin
+                            if (!m_axis_tready) begin
+                                state_rd <= HAND_RD;
+                            end else begin
+                                state_rd <= IDLE_RD;
+                                m_axis_tvalid <= 'd0;
+                                m_axis_tlast <= 'd0;
+                            end
                         end
                     end
             endcase
