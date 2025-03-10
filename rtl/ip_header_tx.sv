@@ -9,19 +9,23 @@ module ip_header_tx
     input   logic   [31:0]  ip_s_addr,
     input   logic   [31:0]  ip_d_addr,
 
+    input   logic   [15:0]  udp_len,
+
     output  logic   [7:0]   data_out,
     output  logic           ip_header_tx_done
 );
 
     localparam  IPHL        =    8'h45;
     localparam  TOS         =    8'h00;
-    localparam  LEN         =   16'h05_DC;
     localparam  IDP         =   16'hFF_FF;
     localparam  FLAG_OFFSET =   16'h00_00;
     localparam  TTL         =    8'hFF;
     localparam  IP_UDP_TYPE =    8'h11;
 
     logic   [2:0]   count;
+    logic   [15:0]  len_sum;
+
+    assign len_sum = 'd28 + udp_len;
 
     typedef enum logic [3:0]
     {  
@@ -71,7 +75,7 @@ module ip_header_tx
                             count <= 'd0;
                         end
 
-                        data_out <= LEN[15 - count*8 -: 8];
+                        data_out <= len_sum[15 - count*8 -: 8];
                     end
                 IDP_TX:
                     begin

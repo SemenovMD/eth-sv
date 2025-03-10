@@ -26,6 +26,7 @@ module arb_arp_oper
         if (!aresetn) begin
             state <= IDLE;
             arp_tx_start <= 'd0;
+            arp_oper <= 'd0;
         end else begin
             case (state)
                 IDLE:
@@ -56,6 +57,7 @@ module arb_arp_oper
                         end else begin
                             state <= IDLE;
                             arp_tx_start <= 'd0;
+                            arp_oper <= 'd0;
                         end
                     end
             endcase

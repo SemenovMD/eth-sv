@@ -105,6 +105,7 @@ module eth_tx
         .eth_header_ip_tx_done(eth_header_ip_tx_done),
         .ip_s_addr(ip_s_addr),
         .ip_d_addr(ip_d_addr),
+        .udp_len(udp_len),
         .data_out(ip_header_tx_data),
         .ip_header_tx_done(ip_header_tx_done)
     );
