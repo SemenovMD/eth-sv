@@ -5,7 +5,7 @@ module eth_udp_arp
     parameter   MAC_DESTINATION     =   {8'h84, 8'hA0, 8'hDA, 8'hB8, 8'h31, 8'h42}, // FPGA
     parameter   IP_SOURCE           =   {8'd192, 8'd168, 8'd1, 8'd10},              // PC
     parameter   IP_DESTINATION      =   {8'd192, 8'd168, 8'd1, 8'd120},             // FPGA
-    parameter   PORT_SOURCE         =   {8'h00, 8'h00},                             // PC
+    parameter   PORT_SOURCE         =   {8'h13, 8'hFF},                             // PC
     parameter   PORT_DESTINATION    =   {8'h13, 8'h8D}                              // FPGA
 )
 
