@@ -39,7 +39,6 @@ module arp_data_rx
 
     assign aresetn_sum = aresetn & data_valid;
 
-    // FSM
     typedef enum logic [3:0] 
     {  
         WAIT,
@@ -57,7 +56,7 @@ module arp_data_rx
     state_type_arp state_arp;
 
     always_ff @(posedge aclk) begin
-        if (!aresetn) begin
+        if (!aresetn_sum) begin
             state_arp <= WAIT;
             count <= 'd0;
             arp_data_valid <= 'd0;
@@ -199,7 +198,7 @@ module arp_data_rx
                             state_arp <= WAIT;
                             count <= 'd0;
 
-                            if (((mac_d_addr_buf == mac_d_addr) || (mac_d_addr_buf == MAC_Z)) && ({ip_d_addr_buf[31:8], data_in} == ip_d_addr)) begin
+                            if (((mac_d_addr_buf == mac_d_addr) || (mac_d_addr_buf == MAC_Z)) && ({ip_d_addr_buf[31:8], data_in} == ip_d_addr) && (ip_s_addr_buf == ip_s_addr)) begin
                                 arp_data_valid <= 'd1;
                             end
                         end

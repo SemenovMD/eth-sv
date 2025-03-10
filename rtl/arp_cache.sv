@@ -3,13 +3,9 @@ module arp_cache
 (
     input   logic           aclk,
     input   logic           aresetn,
-
-    output  logic   [47:0]  mac_d_addr,
-    output  logic   [31:0]  ip_d_addr,
-
+    
     input   logic   [47:0]  mac_s_addr_in,
     output  logic   [47:0]  mac_s_addr_out,
-    output  logic   [31:0]  ip_s_addr,
     
     input   logic           arp_oper,
     input   logic           arp_data_done,
@@ -20,11 +16,6 @@ module arp_cache
 );
 
     logic   [31:0]  count;
-
-    assign  ip_d_addr   =   {8'd192, 8'd168, 8'd1, 8'd120};
-    assign  mac_d_addr  =   {8'h84, 8'hA0, 8'hDA, 8'hB8, 8'h31, 8'h42};
-
-    assign  ip_s_addr   =   {8'd192, 8'd168, 8'd1, 8'd10};
 
     typedef enum logic [1:0]
     {  

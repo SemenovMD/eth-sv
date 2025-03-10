@@ -53,6 +53,7 @@ module eth_udp_arp
     logic           arp_rq_start;
 
     logic           crc_valid;
+    logic           crc_error;
 
     eth_rx eth_rx_inst
     (
@@ -67,12 +68,12 @@ module eth_udp_arp
         .ip_d_addr(IP_DESTINATION),
         .mac_s_addr(mac_s_addr),
         .ip_s_addr(IP_SOURCE),
-        .port_s(PORT_SOURCE),
         .port_d(PORT_DESTINATION),
         .rq_mac_s_addr(rq_mac_s_addr),
         .arp_oper(arp_oper_rx),
         .arp_data_valid(arp_data_valid),
         .crc_valid(crc_valid),
+        .crc_error(crc_error),
         .m_axis_tdata(m_axis_tdata),
         .m_axis_tvalid(m_axis_tvalid),
         .m_axis_tlast(m_axis_tlast),
@@ -107,11 +108,8 @@ module eth_udp_arp
     (
         .aclk(gmii_rx_clk),
         .aresetn(gmii_rstn),
-        .mac_d_addr(MAC_DESTINATION),
-        .ip_d_addr(IP_DESTINATION),
         .mac_s_addr_in(rq_mac_s_addr),
         .mac_s_addr_out(mac_s_addr),
-        .ip_s_addr(IP_SOURCE),
         .arp_oper(arp_oper_rx),
         .arp_data_done(arp_data_valid),
         .crc_valid(crc_valid),

@@ -17,7 +17,7 @@ module arb_arp_oper
         IDLE,
         RESP_START,
         RQ_START,
-        WAIT_CRC
+        WAIT_ARP_DATA_DONE
     } state_type;
 
     state_type state;
@@ -39,20 +39,20 @@ module arb_arp_oper
                     end
                 RESP_START:
                     begin
-                        state <= WAIT_CRC;
+                        state <= WAIT_ARP_DATA_DONE;
                         arp_oper <= 'd0;
                         arp_tx_start <= 'd1;
                     end
                 RQ_START:
                     begin
-                        state <= WAIT_CRC;
+                        state <= WAIT_ARP_DATA_DONE;
                         arp_oper <= 'd1;
                         arp_tx_start <= 'd1;
                     end
-                WAIT_CRC:
+                WAIT_ARP_DATA_DONE:
                     begin
                         if (!arp_data_tx_done) begin
-                            state <= WAIT_CRC;
+                            state <= WAIT_ARP_DATA_DONE;
                         end else begin
                             state <= IDLE;
                             arp_tx_start <= 'd0;

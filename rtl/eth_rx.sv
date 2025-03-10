@@ -13,7 +13,6 @@ module eth_rx
     input   logic   [47:0]  mac_s_addr,
     input   logic   [31:0]  ip_s_addr,
 
-    input   logic   [15:0]  port_s,
     input   logic   [15:0]  port_d,
 
     output  logic   [47:0]  rq_mac_s_addr,
@@ -40,7 +39,6 @@ module eth_rx
     logic           eth_type_ip_valid;
 
     logic           ip_header_done;
-    logic           ip_header_valid;
 
     logic           udp_data_valid;
     logic           udp_data_tlast;
@@ -114,7 +112,6 @@ module eth_rx
         .aresetn(gmii_rstn),
         .data_in(data_out),
         .data_valid(data_valid),
-        .port_s(port_s),
         .port_d(port_d),
         .ip_header_done(ip_header_done),
         .udp_data_valid(udp_data_valid),

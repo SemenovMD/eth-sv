@@ -52,54 +52,42 @@ module asyn_fifo_tx
     logic   [7:0]   udp_len_8;
 
     // SYNC WRITE
-    always_ff @(posedge aclk_wr)
-    begin
-        if (!aresetn_wr)
-        begin
+    always_ff @(posedge aclk_wr) begin
+        if (!aresetn_wr) begin
             frame_rd_0_sync_0 <= 'd0;
             frame_rd_0_sync_1 <= 'd0;
-        end else
-        begin
+        end else begin
             frame_rd_0_sync_0 <= frame_rd_0;
             frame_rd_0_sync_1 <= frame_rd_0_sync_0;
         end
     end
 
-    always_ff @(posedge aclk_wr)
-    begin
-        if (!aresetn_wr)
-        begin
+    always_ff @(posedge aclk_wr) begin
+        if (!aresetn_wr) begin
             frame_rd_1_sync_0 <= 'd0;
             frame_rd_1_sync_1 <= 'd0;
-        end else
-        begin
+        end else begin
             frame_rd_1_sync_0 <= frame_rd_1;
             frame_rd_1_sync_1 <= frame_rd_1_sync_0;
         end
     end
 
     // SYNC READ
-    always_ff @(posedge aclk_rd)
-    begin
-        if (!aresetn_rd)
-        begin
+    always_ff @(posedge aclk_rd) begin
+        if (!aresetn_rd) begin
             frame_wr_0_sync_0 <= 'd0;
             frame_wr_0_sync_1 <= 'd0;
-        end else
-        begin
+        end else begin
             frame_wr_0_sync_0 <= frame_wr_0;
             frame_wr_0_sync_1 <= frame_wr_0_sync_0;
         end
     end
 
-    always_ff @(posedge aclk_rd)
-    begin
-        if (!aresetn_rd)
-        begin
+    always_ff @(posedge aclk_rd) begin
+        if (!aresetn_rd) begin
             frame_wr_1_sync_0 <= 'd0;
             frame_wr_1_sync_1 <= 'd0;
-        end else
-        begin
+        end else begin
             frame_wr_1_sync_0 <= frame_wr_1;
             frame_wr_1_sync_1 <= frame_wr_1_sync_0;
         end
@@ -120,10 +108,8 @@ module asyn_fifo_tx
 
     state_type_wr state_wr;
 
-    always_ff @(posedge aclk_wr)
-    begin
-        if (!aresetn_wr)
-        begin
+    always_ff @(posedge aclk_wr) begin
+        if (!aresetn_wr) begin
             state_wr <= WAIT_VALID_WR_0;
             s_axis_tready <= 'd0;
             index_wr_0 <= 'd0;
@@ -131,8 +117,7 @@ module asyn_fifo_tx
             frame_wr_0 <= 'd0;
             frame_wr_1 <= 'd0;
             flag <= 'd0;
-        end else
-        begin
+        end else begin
             case (state_wr)
                 WAIT_VALID_WR_0:
                     begin
@@ -240,10 +225,8 @@ module asyn_fifo_tx
 
     state_type_rd state_rd;
 
-    always_ff @(posedge aclk_rd)
-    begin
-        if (!aresetn_rd)
-        begin
+    always_ff @(posedge aclk_rd) begin
+        if (!aresetn_rd) begin
             state_rd <= CHECK_WR_0;
             m_axis_tvalid <= 'd0;
             m_axis_tlast <= 'd0;
@@ -251,8 +234,7 @@ module asyn_fifo_tx
             frame_rd_0 <= 'd0;
             frame_rd_1 <= 'd0;
             eth_header_ip_tx_start <= 'd0;
-        end else
-        begin
+        end else begin
             case (state_rd)
                 CHECK_WR_0:
                     begin

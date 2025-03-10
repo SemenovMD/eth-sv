@@ -24,6 +24,7 @@ logic [15:0] port_d = 16'h138D;
 
 // Outputs
 logic [47:0] rq_mac_s_addr;
+logic arp_oper;
 logic arp_data_valid;
 logic crc_valid;
 logic crc_error;

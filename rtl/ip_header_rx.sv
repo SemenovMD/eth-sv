@@ -24,10 +24,6 @@ module ip_header_rx
 
     logic   [2:0]   count;
 
-    logic   [15:0]  len_buf;
-    logic   [15:0]  idp_buf;
-    logic   [7:0]   ttl_buf;
-    logic   [15:0]  checksum_buf;
     logic   [31:0]  ip_s_addr_buf;
     logic   [31:0]  ip_d_addr_buf;
 
@@ -91,8 +87,6 @@ module ip_header_rx
                             state_ip <= IDP_CHECK;
                             count <= 'd0;
                         end
-
-                        len_buf[15 - count*8 -: 8] <= data_in;
                     end
                 IDP_CHECK:
                     begin
@@ -102,8 +96,6 @@ module ip_header_rx
                             state_ip <= FLAG_OFFSET_CHECK;
                             count <= 'd0;
                         end
-
-                        idp_buf[15 - count*8 -: 8] <= data_in;
                     end
                 FLAG_OFFSET_CHECK:
                     begin
@@ -122,7 +114,6 @@ module ip_header_rx
                 TTL_CHECK:
                     begin
                         state_ip <= IP_UDP_TYPE_CHECK;
-                        ttl_buf <= data_in;
                     end
                 IP_UDP_TYPE_CHECK:
                     begin
@@ -140,8 +131,6 @@ module ip_header_rx
                             state_ip <= IP_SOURCE;
                             count <= 'd0;
                         end
-
-                        checksum_buf[15 - count*8 -: 8] <= data_in;
                     end
                 IP_SOURCE:
                     begin
