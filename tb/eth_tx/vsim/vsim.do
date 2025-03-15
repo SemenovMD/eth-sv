@@ -38,6 +38,8 @@ add wave -radix hexadecimal     tb_eth_tx/s_axis_tlast
 add wave -radix hexadecimal     tb_eth_tx/s_axis_tready
 
 add wave -radix hexadecimal     tb_eth_tx/dut/mux_tx_inst/state
+add wave -radix hexadecimal     tb_eth_tx/dut/ip_header_tx_inst/sum_reg
+add wave -radix hexadecimal     tb_eth_tx/dut/ip_header_tx_inst/checksum_calc
 
 # Run the simulation for the specified time
 run 1ms

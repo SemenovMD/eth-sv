@@ -1,11 +1,10 @@
 import socket
+from datetime import datetime
 
-SOURCE_PORT = 5007
 DESTINATION_IP = '192.168.1.120'
-DESTINATION_PORT = 5005
+DESTINATION_PORT = 8080
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock.bind(('', SOURCE_PORT))
 
 with open('udp_tx.txt', 'rb') as f:
     data = f.read()
@@ -25,5 +24,5 @@ while offset < len(data):
     sock.sendto(chunk, (DESTINATION_IP, DESTINATION_PORT))
     offset += 1024  # Смещение всегда увеличиваем на 1024
 
-print(f'[+] Данные отправлены с порта {SOURCE_PORT} на {DESTINATION_IP}:{DESTINATION_PORT}')
+print(f'[+] Данные отправлены на {DESTINATION_IP}:{DESTINATION_PORT}')
 sock.close()

@@ -19,11 +19,17 @@ module ip_header_tx
     localparam  TOS         =    8'h00;
     localparam  IDP         =   16'hFF_FF;
     localparam  FLAG_OFFSET =   16'h00_00;
-    localparam  TTL         =    8'hFF;
+    localparam  TTL         =    8'hF0;
     localparam  IP_UDP_TYPE =    8'h11;
 
     logic   [2:0]   count;
     logic   [15:0]  len_sum;
+
+    logic   [2:0]   count_calc;
+    logic   [31:0]  sum_reg;
+    logic   [31:0]  sum;
+    logic   [31:0]  carry;
+    logic   [15:0]  checksum_calc;
 
     assign len_sum = 'd28 + udp_len;
 
@@ -118,7 +124,7 @@ module ip_header_tx
                             count <= 'd0;
                         end
 
-                        data_out <= 'd0;
+                        data_out <= checksum_calc[15 - count*8 -: 8];
                     end
                 IP_SOURCE_TX:
                     begin
@@ -147,4 +153,63 @@ module ip_header_tx
         end
     end
 
+    // Calculation Checksum
+    typedef enum logic
+    {  
+        WAIT,
+        SUM
+    } state_checksum_type;
+
+    state_checksum_type state_checksum;
+
+    always_ff @(posedge aclk) begin
+        if (!aresetn) begin
+            state_checksum <= WAIT;
+            count_calc <= 'd0;
+            sum_reg <= 'd0;
+        end else begin
+            case (state_checksum)
+                WAIT:
+                    begin
+                        if (state_ip != TOS_TX) begin
+                            state_checksum <= WAIT;
+                        end else begin
+                            state_checksum <= SUM;
+                            sum_reg <= 'd0;
+                        end
+                    end
+                SUM:
+                    begin
+                        if (count_calc != 7) begin
+                            count_calc <= count_calc + 1;
+                        end else begin
+                            state_checksum <= WAIT;
+                            count_calc <= 'd0;
+                        end
+
+                        case (count_calc)
+                            0: sum_reg <= {IPHL, TOS} + len_sum;
+                            1: sum_reg <= sum_reg + IDP;
+                            2: sum_reg <= sum_reg + FLAG_OFFSET;
+                            3: sum_reg <= sum_reg + {TTL, IP_UDP_TYPE};
+                            4: sum_reg <= sum_reg + ip_s_addr[31:16];
+                            5: sum_reg <= sum_reg + ip_s_addr[15:0];
+                            6: sum_reg <= sum_reg + ip_d_addr[31:16];
+                            7: sum_reg <= sum_reg + ip_d_addr[15:0];
+                        endcase
+                    end
+            endcase
+        end
+    end
+
+    always_comb begin
+        carry = sum_reg >> 16;
+        sum = (sum_reg & 32'h0000FFFF) + carry;
+
+        carry = sum >> 16;
+        sum = sum + carry;
+
+        checksum_calc = ~sum[15:0];
+    end
+ 
 endmodule
