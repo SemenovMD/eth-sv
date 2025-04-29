@@ -4,7 +4,7 @@ import time  # Добавляем модуль для работы с задер
 DESTINATION_IP = '192.168.1.120'
 DESTINATION_PORT = 8080
 
-SERVER_IP = '192.168.1.10'
+SERVER_IP = '192.168.188.135'
 SERVER_PORT = 8080
 
 # Создаем отдельный сокет для отправки данных

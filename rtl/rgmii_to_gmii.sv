@@ -71,7 +71,7 @@ module rgmii_to_gmii
     end
 
     always_ff @(posedge gmii_tx_clk_s) begin
-        if (tx_reset_sync) begin
+        if (!tx_reset_sync) begin
             gmii_txd_r      <= 8'h0;
             gmii_tx_en_r    <= 1'b0;
             gmii_tx_er_r    <= 1'b0;
