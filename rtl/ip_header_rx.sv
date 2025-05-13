@@ -99,16 +99,11 @@ module ip_header_rx
                     end
                 FLAG_OFFSET_CHECK:
                     begin
-                        if (data_in != 8'h00) begin
-                            state_ip <= IPHL_CHECK;
-                            count <= 'd0;
+                        if (count != 1) begin
+                            count <= count + 1;
                         end else begin
-                            if (count != 1) begin
-                                count <= count + 1;
-                            end else begin
-                                state_ip <= TTL_CHECK;
-                                count <= 'd0;
-                            end
+                            state_ip <= TTL_CHECK;
+                            count <= 'd0;
                         end
                     end
                 TTL_CHECK:
