@@ -18,8 +18,13 @@ module mux_tx
     input   logic   [7:0]   eth_header_tx_data,
 
     // IP Header
-    input   logic           ip_header_tx_done,
+    input   logic           ip_header_tx_udp_done,
+    input   logic           ip_header_tx_icmp_done,
     input   logic   [7:0]   ip_header_tx_data,
+
+    // ICMP Header
+    input   logic           icmp_header_tx_done,
+    input   logic   [7:0]   icmp_header_tx_data,
 
     // UDP Header
     input   logic           udp_header_tx_done,
@@ -48,6 +53,7 @@ module mux_tx
         PREAMBLE_SFD,
         ETH_HEADER,
         IP_HEADER,
+        ICMP_HEADER,
         UDP_HEADER,
         UDP_DATA,
         ARP_DATA,
@@ -90,10 +96,19 @@ module mux_tx
                     end
                 IP_HEADER:
                     begin
-                        if (!ip_header_tx_done) begin
-                            state <= IP_HEADER;
+                        case ({ip_header_tx_icmp_done, ip_header_tx_udp_done})
+                            2'b00: state <= IP_HEADER;
+                            2'b01: state <= UDP_HEADER;
+                            2'b10: state <= ICMP_HEADER;
+                            2'b11: state <= ICMP_HEADER;
+                        endcase
+                    end
+                ICMP_HEADER:
+                    begin
+                        if (!icmp_header_tx_done) begin
+                            state <= ICMP_HEADER;
                         end else begin
-                            state <= UDP_HEADER;
+                            state <= FCS;
                         end
                     end
                 UDP_HEADER:
@@ -163,6 +178,11 @@ module mux_tx
                 begin
                     data_valid = 'd1;
                     data_out = ip_header_tx_data;
+                end
+            ICMP_HEADER:
+                begin
+                    data_valid = 'd1;
+                    data_out = icmp_header_tx_data;
                 end
             UDP_HEADER:
                 begin

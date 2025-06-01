@@ -24,7 +24,9 @@ module eth_udp_arp_wrapper #(
     input wire [31:0] s_axis_tdata,
     input wire s_axis_tvalid,
     input wire s_axis_tlast,
-    output wire s_axis_tready
+    output wire s_axis_tready,
+    output wire icmp_request_done,
+    output wire icmp_header_tx_done
 );
 
     eth_udp_arp #(
@@ -53,6 +55,8 @@ module eth_udp_arp_wrapper #(
         .s_axis_tdata(s_axis_tdata),
         .s_axis_tvalid(s_axis_tvalid),
         .s_axis_tlast(s_axis_tlast),
-        .s_axis_tready(s_axis_tready)
+        .s_axis_tready(s_axis_tready),
+        .icmp_request_done(icmp_request_done),
+        .icmp_header_tx_done(icmp_header_tx_done)
     );
 endmodule

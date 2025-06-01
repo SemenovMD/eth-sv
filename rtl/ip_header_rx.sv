@@ -11,16 +11,18 @@ module ip_header_rx
     input   logic   [31:0]  ip_d_addr,
 
     input   logic           eth_type_ip_valid,
-    output  logic           ip_header_done
+    output  logic           ip_header_udp_done,
+    output  logic           ip_header_icmp_done
 );
 
-    localparam  IPHL        =    8'h45;
-    localparam  TOS         =    8'h00;
-    localparam  LEN         =   16'h05_DC;
-    localparam  IDP         =   16'hFF_FF;
-    localparam  FLAG_OFFSET =   16'h00_00;
-    localparam  TTL         =    8'hFF;
-    localparam  IP_UDP_TYPE =    8'h11;
+    localparam  IPHL            =    8'h45;
+    localparam  TOS             =    8'h00;
+    localparam  LEN             =   16'h05_DC;
+    localparam  IDP             =   16'hFF_FF;
+    localparam  FLAG_OFFSET     =   16'h00_00;
+    localparam  TTL             =    8'hFF;
+    localparam  IP_UDP_TYPE     =    8'h11;
+    localparam  IP_ICMP_TYPE    =    8'h01;
 
     logic   [2:0]   count;
 
@@ -28,6 +30,9 @@ module ip_header_rx
     logic   [31:0]  ip_d_addr_buf;
 
     logic           aresetn_sum;
+
+    logic           flag_udp;
+    logic           flag_icmp;
 
     assign  aresetn_sum = aresetn & data_valid;
 
@@ -40,7 +45,7 @@ module ip_header_rx
         IDP_CHECK,
         FLAG_OFFSET_CHECK,
         TTL_CHECK,
-        IP_UDP_TYPE_CHECK,
+        IP_TYPE_CHECK,
         IP_HEADER_CHECKSUM,
         IP_SOURCE,
         IP_DESTINATION,
@@ -54,7 +59,10 @@ module ip_header_rx
         if (!aresetn_sum) begin
             state_ip <= IPHL_CHECK;
             count <= 'd0;
-            ip_header_done <= 'd0;
+            ip_header_udp_done <= 'd0;
+            ip_header_icmp_done <= 'd0;
+            flag_udp <= 'd0;
+            flag_icmp <= 'd0;
         end else begin
             case (state_ip)
                 IPHL_CHECK:
@@ -69,7 +77,11 @@ module ip_header_rx
                             end
                         end
 
-                        ip_header_done <= 'd0;
+                        ip_header_udp_done <= 'd0;
+                        ip_header_icmp_done <= 'd0;
+
+                        flag_udp <= 'd0;
+                        flag_icmp <= 'd0;
                     end
                 TOS_CHECK:
                     begin
@@ -108,15 +120,26 @@ module ip_header_rx
                     end
                 TTL_CHECK:
                     begin
-                        state_ip <= IP_UDP_TYPE_CHECK;
+                        state_ip <= IP_TYPE_CHECK;
                     end
-                IP_UDP_TYPE_CHECK:
+                IP_TYPE_CHECK:
                     begin
-                        if (data_in != IP_UDP_TYPE) begin
-                            state_ip <= IPHL_CHECK;
-                        end else begin
-                            state_ip <= IP_HEADER_CHECKSUM;
-                        end
+                        case (data_in)
+                            IP_UDP_TYPE:
+                                begin
+                                    state_ip <= IP_HEADER_CHECKSUM;
+                                    flag_udp <= 'd1;
+                                end
+                            IP_ICMP_TYPE:
+                                begin
+                                    state_ip <= IP_HEADER_CHECKSUM;
+                                    flag_icmp <= 'd1;
+                                end
+                            default:
+                                begin
+                                    state_ip <= IPHL_CHECK;
+                                end
+                        endcase
                     end
                 IP_HEADER_CHECKSUM:
                     begin
@@ -145,7 +168,11 @@ module ip_header_rx
                         end else begin
                             if ((ip_s_addr_buf == ip_s_addr) && ({ip_d_addr_buf[31:8], data_in} == ip_d_addr)) begin
                                 state_ip <= IPHL_CHECK;
-                                ip_header_done <= 'd1;
+
+                                case ({flag_icmp, flag_udp})
+                                    2'b01: ip_header_udp_done <= 'd1;
+                                    2'b10: ip_header_icmp_done <= 'd1;
+                                endcase
                             end else begin
                                 state_ip <= IPHL_CHECK;
                             end

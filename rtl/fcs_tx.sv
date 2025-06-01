@@ -9,6 +9,7 @@ module fcs_tx
 
     input   logic           arp_data_done,
     input   logic           udp_data_done,
+    input   logic           icmp_data_done,
 
     output  logic   [7:0]   data_out,
     output  logic           fcs_tx_done
@@ -59,7 +60,7 @@ module fcs_tx
                     end
                 CALC_TX:
                     begin
-                        if (!(arp_data_done || udp_data_done)) begin
+                        if (!(arp_data_done || udp_data_done || icmp_data_done)) begin
                             state <= CALC_TX;
                         end else begin
                             state <= FCS_TX;

@@ -21,6 +21,10 @@ module eth_rx
     output  logic           crc_valid,
     output  logic           crc_error,
 
+    output  logic           icmp_request_done,
+    output  logic   [15:0]  icmp_id,
+    output  logic   [15:0]  icmp_seq_num,
+
     input   logic           aclk,
     input   logic           aresetn,
 
@@ -38,7 +42,8 @@ module eth_rx
     logic           eth_type_arp_valid;
     logic           eth_type_ip_valid;
 
-    logic           ip_header_done;
+    logic           ip_header_udp_done;
+    logic           ip_header_icmp_done;
 
     logic           udp_data_valid;
     logic           udp_data_tlast;
@@ -103,7 +108,20 @@ module eth_rx
         .ip_s_addr(ip_s_addr),
         .ip_d_addr(ip_d_addr),
         .eth_type_ip_valid(eth_type_ip_valid),
-        .ip_header_done(ip_header_done)
+        .ip_header_udp_done(ip_header_udp_done),
+        .ip_header_icmp_done(ip_header_icmp_done)
+    );
+
+    icmp_rx icmp_rx_inst
+    (
+        .aclk(gmii_rx_clk),
+        .aresetn(gmii_rstn),
+        .data_in(data_out),
+        .data_valid(data_valid),
+        .ip_header_icmp_done(ip_header_icmp_done),
+        .icmp_request_done(icmp_request_done),
+        .icmp_id(icmp_id),
+        .icmp_seq_num(icmp_seq_num)
     );
 
     udp_header_rx udp_header_rx_inst
@@ -113,7 +131,7 @@ module eth_rx
         .data_in(data_out),
         .data_valid(data_valid),
         .port_d(port_d),
-        .ip_header_done(ip_header_done),
+        .ip_header_done(ip_header_udp_done),
         .udp_data_valid(udp_data_valid),
         .udp_data_tlast(udp_data_tlast)
     );

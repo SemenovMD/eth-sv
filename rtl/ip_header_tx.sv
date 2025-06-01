@@ -5,6 +5,7 @@ module ip_header_tx
     input   logic           aresetn,
 
     input   logic           eth_header_ip_tx_done,
+    input   logic           eth_header_ip_icmp_tx_start,
 
     input   logic   [31:0]  ip_s_addr,
     input   logic   [31:0]  ip_d_addr,
@@ -12,15 +13,17 @@ module ip_header_tx
     input   logic   [15:0]  udp_len,
 
     output  logic   [7:0]   data_out,
-    output  logic           ip_header_tx_done
+    output  logic           ip_header_tx_udp_done,
+    output  logic           ip_header_tx_icmp_done
 );
 
-    localparam  IPHL        =    8'h45;
-    localparam  TOS         =    8'h00;
-    localparam  IDP         =   16'hFF_FF;
-    localparam  FLAG_OFFSET =   16'h00_00;
-    localparam  TTL         =    8'hF0;
-    localparam  IP_UDP_TYPE =    8'h11;
+    localparam  IPHL            =    8'h45;
+    localparam  TOS             =    8'h00;
+    localparam  IDP             =   16'hFF_FF;
+    localparam  FLAG_OFFSET     =   16'h00_00;
+    localparam  TTL             =    8'hF0;
+    localparam  IP_UDP_TYPE     =    8'h11;
+    localparam  IP_ICMP_TYPE    =    8'h01;
 
     logic   [2:0]   count;
     logic   [15:0]  len_sum;
@@ -31,7 +34,7 @@ module ip_header_tx
     logic   [31:0]  carry;
     logic   [15:0]  checksum_calc;
 
-    assign len_sum = 'd28 + udp_len;
+    assign len_sum = eth_header_ip_icmp_tx_start ? ('d28) : ('d28 + udp_len);
 
     typedef enum logic [3:0]
     {  
@@ -41,7 +44,7 @@ module ip_header_tx
         IDP_TX,
         FLAG_OFFSET_TX,
         TTL_TX,
-        IP_UDP_TYPE_TX,
+        IP_TYPE_TX,
         CHECKSUM_TX,
         IP_SOURCE_TX,
         IP_DESTINATION_TX
@@ -53,7 +56,8 @@ module ip_header_tx
         if (!aresetn) begin
             state_ip <= WAIT_START;
             count <= 'd0;
-            ip_header_tx_done <= 'd0;
+            ip_header_tx_udp_done <= 'd0;
+            ip_header_tx_icmp_done <= 'd0;
         end else begin
             case (state_ip)
                 WAIT_START:
@@ -65,7 +69,8 @@ module ip_header_tx
                             data_out <= IPHL;
                         end
 
-                        ip_header_tx_done <= 'd0;
+                        ip_header_tx_udp_done <= 'd0;
+                        ip_header_tx_icmp_done <= 'd0;
                     end
                 TOS_TX:
                     begin
@@ -107,13 +112,18 @@ module ip_header_tx
                     end
                 TTL_TX:
                     begin
-                        state_ip <= IP_UDP_TYPE_TX;
+                        state_ip <= IP_TYPE_TX;
                         data_out <= TTL;
                     end
-                IP_UDP_TYPE_TX:
+                IP_TYPE_TX:
                     begin
-                        state_ip <= CHECKSUM_TX;
-                        data_out <= IP_UDP_TYPE;
+                        if (!eth_header_ip_icmp_tx_start) begin
+                            state_ip <= CHECKSUM_TX;
+                            data_out <= IP_UDP_TYPE;
+                        end else begin
+                            state_ip <= CHECKSUM_TX;
+                            data_out <= IP_ICMP_TYPE;
+                        end
                     end
                 CHECKSUM_TX:
                     begin
@@ -144,7 +154,12 @@ module ip_header_tx
                         end else begin
                             state_ip <= WAIT_START;
                             count <= 'd0;
-                            ip_header_tx_done <= 'd1;
+
+                            if (!eth_header_ip_icmp_tx_start) begin
+                                ip_header_tx_udp_done <= 'd1;
+                            end else begin
+                                ip_header_tx_icmp_done <= 'd1;
+                            end
                         end
 
                         data_out <= ip_d_addr[31 - count*8 -: 8];
@@ -191,7 +206,14 @@ module ip_header_tx
                             0: sum_reg <= {IPHL, TOS} + len_sum;
                             1: sum_reg <= sum_reg + IDP;
                             2: sum_reg <= sum_reg + FLAG_OFFSET;
-                            3: sum_reg <= sum_reg + {TTL, IP_UDP_TYPE};
+                            3: 
+                                begin
+                                    if (!eth_header_ip_icmp_tx_start) begin
+                                        sum_reg <= sum_reg + {TTL, IP_UDP_TYPE};
+                                    end else begin
+                                        sum_reg <= sum_reg + {TTL, IP_ICMP_TYPE};
+                                    end
+                                end
                             4: sum_reg <= sum_reg + ip_s_addr[31:16];
                             5: sum_reg <= sum_reg + ip_s_addr[15:0];
                             6: sum_reg <= sum_reg + ip_d_addr[31:16];
