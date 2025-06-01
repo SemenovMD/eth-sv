@@ -17,13 +17,14 @@ module icmp_tx
 
     localparam  ICMP_TYPE_RESP  =   8'h00;
     localparam  ICMP_CODE       =   8'h00;
+    localparam  PADDING         =   8'h00;
 
     logic   [15:0]  icmp_id_buf;
     logic   [15:0]  icmp_seq_num_buf;
 
-    logic           count;
+    logic   [4:0]   count;
 
-    logic   [1:0]   count_calc;
+    logic           count_calc;
     logic   [31:0]  sum_reg;
     logic   [31:0]  sum;
     logic   [31:0]  carry;
@@ -36,7 +37,8 @@ module icmp_tx
         CODE_ICMP,
         CHECKSUM_ICMP,
         ID_ICMP,
-        SEQ_NUM_ICMP
+        SEQ_NUM_ICMP,
+        PADDING_TX
     } state_type;
 
     state_type state;
@@ -104,12 +106,23 @@ module icmp_tx
                         if (count != 1) begin
                             count <= count + 1;
                         end else begin
+                            state <= PADDING_TX;
+                            count <= 'd0;
+                        end
+
+                        data_out <= icmp_seq_num_buf[15 - count*8 -: 8];
+                    end
+                PADDING_TX:
+                    begin
+                        if (count != 17) begin
+                            count <= count + 1;
+                        end else begin
                             state <= WAIT_REQUEST;
                             count <= 'd0;
                             icmp_header_tx_done <= 'd1;
                         end
-
-                        data_out <= icmp_seq_num_buf[15 - count*8 -: 8];
+                        
+                        data_out <= PADDING;
                     end
             endcase
         end
@@ -120,7 +133,8 @@ module icmp_tx
     {
         WAIT,
         SUM,
-        FOLD
+        FOLD,
+        RESET_SUM
     } state_checksum_type;
 
     state_checksum_type state_checksum;
@@ -130,36 +144,36 @@ module icmp_tx
             state_checksum <= WAIT;
             count_calc <= 'd0;
             sum_reg <= 'd0;
+            checksum_calc <= 'd0;
         end else begin
             case (state_checksum)
                 WAIT: 
-                    begin
-                        if (icmp_request_done) begin
-                            state_checksum <= SUM;
-                            sum_reg <= {ICMP_TYPE_RESP, CODE_ICMP} + 16'h0000;
-                            count_calc <= 'd0;
-                        end
+                    if (icmp_request_done) begin
+                        state_checksum <= SUM;
+                        sum_reg <= {ICMP_TYPE_RESP, ICMP_CODE};
                     end
                 SUM: 
-                    begin
-                        case (count_calc)
-                            0: sum_reg <= sum_reg + icmp_id_buf;
-                            1: sum_reg <= sum_reg + icmp_seq_num_buf;
-                        endcase
-                        
-                        if (count_calc == 1) begin
-                            state_checksum <= FOLD;
-                        end
-                        count_calc <= count_calc + 1;
+                    if (count_calc == 0) begin
+                        count_calc <= 'd1;
+                        sum_reg <= sum_reg + icmp_id_buf;
+                    end else begin
+                        state_checksum <= FOLD;
+                        count_calc <= 'd0;
+                        sum_reg <= sum_reg + icmp_seq_num_buf;
                     end
                 FOLD: 
                     begin
                         sum_reg <= (sum_reg >> 16) + (sum_reg & 32'hFFFF);
-                        
-                        if (sum_reg <= 32'hFFFF) begin
+
+                        if ((sum_reg >> 16) == 0) begin
+                            state_checksum <= RESET_SUM;
                             checksum_calc <= ~sum_reg[15:0];
-                            state_checksum <= WAIT;
                         end
+                    end
+                RESET_SUM:
+                    begin
+                        state_checksum <= WAIT;
+                        sum_reg <= 'd0;
                     end
             endcase
         end
