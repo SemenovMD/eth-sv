@@ -12,17 +12,13 @@ def main():
     
     try:
         while True:
-            # Получаем данные и адрес отправителя
             data, addr = sock.recvfrom(1024)
             
-            # Формируем запись с временной меткой
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             log_entry = f"[{timestamp}] From {addr}: {data.decode()}\n"
             
-            # Вывод в консоль
             print(log_entry.strip())
             
-            # Запись в файл
             with open("udp_rx.txt", "a", encoding="utf-8") as f:
                 f.write(log_entry)
                 

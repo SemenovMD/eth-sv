@@ -11,6 +11,7 @@ vlog -sv    rtl/eth_header_tx.sv
 vlog -sv    rtl/arp_data_tx.sv
 vlog -sv    rtl/ip_header_tx.sv
 vlog -sv    rtl/udp_header_tx.sv
+vlog -sv    rtl/icmp_tx.sv
 vlog -sv    rtl/conv_32_8.sv
 vlog -sv    rtl/asyn_fifo_tx.sv
 vlog -sv    rtl/fcs_tx.sv
@@ -36,10 +37,6 @@ add wave -radix hexadecimal     tb_eth_tx/s_axis_tdata
 add wave -radix hexadecimal     tb_eth_tx/s_axis_tvalid
 add wave -radix hexadecimal     tb_eth_tx/s_axis_tlast
 add wave -radix hexadecimal     tb_eth_tx/s_axis_tready
-
-add wave -radix hexadecimal     tb_eth_tx/dut/mux_tx_inst/state
-add wave -radix hexadecimal     tb_eth_tx/dut/ip_header_tx_inst/sum_reg
-add wave -radix hexadecimal     tb_eth_tx/dut/ip_header_tx_inst/checksum_calc
 
 # Run the simulation for the specified time
 run 1ms

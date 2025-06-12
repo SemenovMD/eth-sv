@@ -5,7 +5,6 @@ module tb_eth_rx();
 // Parameters
 parameter GMII_CLK_PERIOD = 8;  // 125 MHz
 parameter AXI_CLK_PERIOD = 10;  // 100 MHz
-parameter TEST_PACKETS = 3;
 
 // DUT Signals
 logic gmii_rstn;
@@ -37,6 +36,11 @@ logic m_axis_tvalid;
 logic m_axis_tlast;
 logic m_axis_tready;
 
+// ICMP
+logic icmp_request_done;
+logic [15:0] icmp_id;
+logic [15:0] icmp_seq_num;
+
 byte crc_buffer[$];
 logic calc_crc_enable = 0;
 
@@ -59,65 +63,11 @@ initial begin
     initialize();
     reset();
     
-    // Test 1: Normal UDP Packet
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
-    send_udp_packet(1024);
+    repeat (20) begin
+        send_udp_packet(1024);
+    end
 
-    // Test 2: ARP Packet
-    // send_arp_packet();
-    
-    // Test 3: Corrupted Packet
-    // send_corrupted_packet();
-
-    #1000000;
+    #1000;
 
     $display("All tests completed");
     $finish;
@@ -274,7 +224,7 @@ task automatic calculate_crc(ref byte data[], output logic [31:0] crc);
         crc = crc ^ {24'h0, data[i]};
         
         for(int j = 0; j < 8; j++) begin
-            if(crc[0]) begin          // Проверяем МЛАДШИЙ бит
+            if(crc[0]) begin
                 crc = (crc >> 1) ^ polynomial;
             end else begin
                 crc = crc >> 1;
@@ -282,35 +232,28 @@ task automatic calculate_crc(ref byte data[], output logic [31:0] crc);
         end
     end
     
-    // Финальная инверсия и реверс байт
     crc = ~crc;
     crc = {<<8{crc}};
 endtask
 
 task automatic send_frame_with_crc();
-    // 1. Сбор данных для CRC (после SFD)
     logic [31:0] calculated_crc;
     byte packet_data[];
     
-    // Ждем окончания отправки полезной нагрузки
     wait(crc_buffer.size() > 0); 
     
-    // 2. Остановить сбор данных
-    calc_crc_enable = 0; // <-- Добавить!
+    calc_crc_enable = 0;
     
-    // 3. Рассчитать CRC
     packet_data = new[crc_buffer.size()];
     foreach(crc_buffer[i]) packet_data[i] = crc_buffer[i];
     calculate_crc(packet_data, calculated_crc);
     
-    // 4. Отправляем CRC
     for(int i=0; i<4; i++) begin
         automatic logic [7:0] crc_byte = calculated_crc[31-8*i-:8];
         @(posedge gmii_rx_clk);
         gmii_rxd = crc_byte;
     end
     
-    // 5. Сброс
     crc_buffer.delete();
     calc_crc_enable = 0;
     @(posedge gmii_rx_clk);

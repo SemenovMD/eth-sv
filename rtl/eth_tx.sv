@@ -29,9 +29,7 @@ module eth_tx
     input   logic   [31:0]  ip_s_addr,
 
     input   logic   [15:0]  port_s,
-    input   logic   [15:0]  port_d,
-    
-    output  logic           icmp_header_tx_done
+    input   logic   [15:0]  port_d
 );
 
     logic           preamble_sfd_tx_done;
@@ -48,7 +46,7 @@ module eth_tx
     logic           ip_header_tx_icmp_done;
     logic   [7:0]   ip_header_tx_data;
 
-    // logic           icmp_header_tx_done;
+    logic           icmp_header_tx_done;
     logic   [7:0]   icmp_header_tx_data;
 
     logic           udp_header_tx_done_0;

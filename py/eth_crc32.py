@@ -19,8 +19,8 @@ def crc32_ethernet(data):
         print("{:<6} 0x{:<6x} 0x{:08x} -> 0x{:08x}".format(
             idx + 1,
             byte,
-            initial_crc ^ 0xFFFFFFFF,  # Показываем инвертированное начальное значение
-            crc ^ 0xFFFFFFFF           # Инвертированное конечное значение
+            initial_crc ^ 0xFFFFFFFF,
+            crc ^ 0xFFFFFFFF
         ))
     
     final_crc = crc ^ 0xFFFFFFFF

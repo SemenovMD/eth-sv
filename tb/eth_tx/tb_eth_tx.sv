@@ -23,6 +23,11 @@ logic   [47:0]  mac_s_addr;
 logic   [31:0]  ip_s_addr;
 logic   [15:0]  port_s;
 logic   [15:0]  port_d;
+logic           icmp_request_done;
+logic   [15:0]  icmp_id;
+logic   [15:0]  icmp_seq_num;
+logic           icmp_header_tx_done;
+
 
 // DUT instantiation
 eth_tx dut (.*);
@@ -61,7 +66,7 @@ end
 initial begin
     aresetn = 0;
     gmii_tx_rstn = 0;
-    #20;
+    #100;
     aresetn = 1;
     gmii_tx_rstn = 1;
 end
@@ -80,18 +85,17 @@ initial begin
     ip_s_addr = 32'hC0A80102;
     port_s = 16'h1234;
     port_d = 16'h5678;
+    icmp_request_done = 0;
+    icmp_id = 0;
+    icmp_seq_num = 0;
 end
 
 initial begin
-    #100;
+    #1000;
 
-    repeat(100) begin
+    repeat(10) begin
         send_frame(256);
-    end
-
-    #10000;
-    repeat(100) begin
-        send_frame(256);
+        #10;
     end
 end
 

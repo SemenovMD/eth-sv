@@ -8,6 +8,7 @@ vlib work
 vlog -sv    rtl/gmii_rx_to_valid.sv
 vlog -sv    rtl/preamble_sfd_rx.sv
 vlog -sv    rtl/eth_header_rx.sv
+vlog -sv    rtl/icmp_rx.sv
 vlog -sv    rtl/arp_data_rx.sv
 vlog -sv    rtl/ip_header_rx.sv
 vlog -sv    rtl/udp_header_rx.sv

@@ -38,10 +38,7 @@ module eth_udp_arp
     input   logic   [31:0]  s_axis_tdata,
     input   logic           s_axis_tvalid,
     input   logic           s_axis_tlast,
-    output  logic           s_axis_tready,
-
-    output  logic           icmp_request_done,
-    output  logic           icmp_header_tx_done
+    output  logic           s_axis_tready
 );
 
     logic   [47:0]  mac_s_addr;
@@ -55,7 +52,6 @@ module eth_udp_arp
     logic           arp_resp_start;
     logic           arp_rq_start;
 
-    // logic           icmp_request_done;
     logic   [15:0]  icmp_id;
     logic   [15:0]  icmp_seq_num;
 
@@ -114,9 +110,7 @@ module eth_udp_arp
         .mac_s_addr(MAC_DESTINATION),
         .ip_s_addr(IP_DESTINATION),
         .port_s(PORT_DESTINATION),
-        .port_d(PORT_SOURCE),
-
-        .icmp_header_tx_done(icmp_header_tx_done)
+        .port_d(PORT_SOURCE)
     );
 
     arp_cache arp_cache_inst

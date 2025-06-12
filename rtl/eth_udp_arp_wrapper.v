@@ -1,10 +1,10 @@
 module eth_udp_arp_wrapper #(
-    parameter MAC_SOURCE = {8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00},
-    parameter MAC_DESTINATION = {8'h84, 8'hA0, 8'hDA, 8'hB8, 8'h31, 8'h42},
-    parameter IP_SOURCE = {8'd192, 8'd168, 8'd1, 8'd10},
-    parameter IP_DESTINATION = {8'd192, 8'd168, 8'd1, 8'd120},
-    parameter PORT_SOURCE = {8'h1F, 8'h90},
-    parameter PORT_DESTINATION = {8'h1F, 8'h90}
+    parameter MAC_SOURCE = {8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00},      // PC
+    parameter MAC_DESTINATION = {8'h84, 8'hA0, 8'hDA, 8'hB8, 8'h31, 8'h42}, // FPGA
+    parameter IP_SOURCE = {8'd192, 8'd168, 8'd1, 8'd10},                    // PC
+    parameter IP_DESTINATION = {8'd192, 8'd168, 8'd1, 8'd120},              // FPGA
+    parameter PORT_SOURCE = {8'h1F, 8'h90},                                 // PC
+    parameter PORT_DESTINATION = {8'h1F, 8'h90}                             // FPGA
 ) (
     input wire gmii_rstn,
     input wire [7:0] gmii_rxd,
@@ -24,9 +24,7 @@ module eth_udp_arp_wrapper #(
     input wire [31:0] s_axis_tdata,
     input wire s_axis_tvalid,
     input wire s_axis_tlast,
-    output wire s_axis_tready,
-    output wire icmp_request_done,
-    output wire icmp_header_tx_done
+    output wire s_axis_tready
 );
 
     eth_udp_arp #(
@@ -55,8 +53,6 @@ module eth_udp_arp_wrapper #(
         .s_axis_tdata(s_axis_tdata),
         .s_axis_tvalid(s_axis_tvalid),
         .s_axis_tlast(s_axis_tlast),
-        .s_axis_tready(s_axis_tready),
-        .icmp_request_done(icmp_request_done),
-        .icmp_header_tx_done(icmp_header_tx_done)
+        .s_axis_tready(s_axis_tready)
     );
 endmodule
