@@ -9,6 +9,7 @@
 - [Симуляция](#Симуляция)
 - [Примеры python скриптов](#Примеры-python-скриптов)
 - [Документация](#Документация)
+- [Лицензия](#Лицензия)
 - [Автор](#Автор)
 
 
@@ -157,6 +158,12 @@ make clean
 
 ### `eth_udp_arp_wrapper`
 Оболочка на Verilog приемопередатчика Ethernet фреймов для удобного использования в блок дизайне (IP Integrator).
+
+
+
+## Лицензия
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)  
+Проект распространяется под лицензией [MIT](LICENSE).
 
 
 
